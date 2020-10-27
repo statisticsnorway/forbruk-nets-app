@@ -44,7 +44,7 @@ jobs:
       imageName: $(imageName)
       repoName: $(repoName)
       artifactName: forbruk-nets-app
-      mavenContainer: maven:3-openjdk-14
+      mavenContainer: maven:3-openjdk-15
       checkStyleRunAnalysis: false
 
   # Job which pulls the Docker image with the correct tag (image-scan-tag) from GCR, tags this
