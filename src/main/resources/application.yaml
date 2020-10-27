@@ -1,0 +1,98 @@
+webserver:
+  host: 0.0.0.0
+  port: 10140
+  access-log:
+    format: "%h %u %t %r %s %b %{Referer}i %T"
+
+#data-access:
+#  provider: no.ssb.dapla.data.access.service.GoogleDataAccessService
+
+# Metrics related configurations
+management:
+  endpoints:
+    web:
+      exposure.include: prometheus
+    base-path: /
+    path-mapping:
+      prometheus: health, metrics
+
+tracing:
+  enabled: true
+  service: nets-app
+  sampler-type: const
+  sampler-param: 1
+  propagation: b3
+  protocol: http
+  host: localhost
+  port: 14268
+  path: /api/traces
+  paths:
+    - path: "/favicon.ico"
+      enabled: false
+    - path: "/metrics"
+      enabled: false
+    - path: "/metrics/vendor"
+      enabled: false
+    - path: "/metrics/base"
+      enabled: false
+    - path: "/metrics/application"
+      enabled: false
+    - path: "/health"
+      enabled: false
+    - path: "/health/live"
+      enabled: false
+    - path: "/health/ready"
+      enabled: false
+
+spring:
+  # Don't print the Spring logo banner at startup (We want only JSON logs printed to stdout)
+  main:
+    banner-mode: off
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: true
+    hibernate:
+      ddl-auto: create
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        trace: false
+        web-allow-others: false
+
+
+# Project where Secret Manager is enabled and secrets stored
+bip:
+  gcp:
+    secrets:
+      projectname: forbruk-staging
+# Name and versions of secrets
+      nets:
+        ftp:
+          privkey:
+            name: NETS_SECRET_STAGING
+            version: latest
+          passphrase:
+            name: NETS_PASSPHRASE_STAGING
+            version: latest
+
+# Configuration used in connection to NETS
+forbruk:
+  nets:
+    host: 91.102.24.144
+    user: tSSBNO
+    port: 22
+    session_timeout: 10000
+    channel_timeout: 5000
+    workdir: "./Outbound"
+
+# Scheduler
+scheduled:
+  cron:
+    listfiles: "0 0/1 * * * ?"
