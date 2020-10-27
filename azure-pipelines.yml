@@ -39,7 +39,7 @@ variables:
 jobs:
   - template: complete-builds/job-test-coverage-build-gcr.yml@templates
     parameters:
-      project: forbruk-staging
+      project: forbruk
       imageName: $(imageName)
       repoName: $(repoName)
       artifactName: forbruk-nets-app
