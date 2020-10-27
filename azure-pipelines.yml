@@ -39,11 +39,11 @@ variables:
 jobs:
   - template: complete-builds/job-test-coverage-build-gcr.yml@templates
     parameters:
-      project: dapla
+      project: forbruk-staging
       imageName: $(imageName)
       repoName: $(repoName)
-      artifactName: data-access
-      mavenContainer: maven:3-adoptopenjdk-14
+      artifactName: forbruk-nets-app
+      mavenContainer: maven:3-adoptopenjdk-15
       checkStyleRunAnalysis: false
 
   # Job which pulls the Docker image with the correct tag (image-scan-tag) from GCR, tags this
