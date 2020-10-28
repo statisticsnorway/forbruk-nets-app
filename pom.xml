@@ -16,6 +16,7 @@
 
 	<properties>
 		<java.version>15</java.version>
+		<pmd.version>6.28.0</pmd.version>
 		<logback.contrib.version>0.1.5</logback.contrib.version>
 	</properties>
 
@@ -37,7 +38,7 @@
 					<plugin>
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.5</version>
+						<version>0.8.6</version>
 						<executions>
 							<execution>
 								<id>prepare-agent</id>
@@ -189,7 +190,17 @@
 			</exclusions>
 		</dependency>
 	</dependencies>
-
+	<reporting>
+		<plugins>
+			<plugin>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>3.13.0</version>
+				<configuration>
+					<targetJdk>15</targetJdk>
+				</configuration>
+			</plugin>
+		</plugins>
+	</reporting>
 	<build>
 		<plugins>
 			<plugin>
@@ -198,6 +209,24 @@
 				<configuration>
 					<finalName>${project.artifactId}</finalName>
 				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>3.13.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>net.sourceforge.pmd</groupId>
+						<artifactId>pmd-core</artifactId>
+						<version>${pmd.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>net.sourceforge.pmd</groupId>
+						<artifactId>pmd-java</artifactId>
+						<version>${pmd.version}</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 		</plugins>
 
