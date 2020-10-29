@@ -91,6 +91,8 @@ forbruk:
     session_timeout: 10000
     channel_timeout: 5000
     workdir: "./Outbound"
+    privatekey:
+    passphrase:
 
 # Scheduler
 scheduled:
