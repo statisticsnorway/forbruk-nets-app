@@ -13,8 +13,8 @@ resources:
     - repository: templates
       type: github
       name: statisticsnorway/azure-pipelines-templates
-#      ref: refs/tags/1.1.6
-      ref: remove-project-as-parameter-in-build-call
+      ref: refs/tags/1.1.7
+#      ref: remove-project-as-parameter-in-build-call
       endpoint: github-Forbruksundersøkelsen
 
 variables:
