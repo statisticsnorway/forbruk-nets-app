@@ -27,17 +27,22 @@ public class SftpFileTransfer {
     private static final Logger logger = LoggerFactory.getLogger(SftpFileTransfer.class);
 
     @Value("${forbruk.nets.host}")
-    private static String HOST;
+    private String HOST;
     @Value("${forbruk.nets.user}")
-    private static String USER;
+    private String USER;
     @Value("${forbruk.nets.port}")
-    private static int PORT;
+    private int PORT;
     @Value("${forbruk.nets.session_timeout}")
-    private static int SESSION_TIMEOUT;
+    private int SESSION_TIMEOUT;
     @Value("${forbruk.nets.channel_timeout}")
-    private static int CHANNEL_TIMEOUT;
+    private int CHANNEL_TIMEOUT;
     @Value("${forbruk.nets.workdir}")
-    private static String WORKDIR;
+    private String WORKDIR;
+
+    @Value("${forbruk.nets.privatekey}")
+    private String privateKey;
+    @Value("${forbruk.nets.passphrase}")
+    private String passphrase;
 
     @Autowired
     AppSecretsService appSecretsService;
@@ -49,6 +54,7 @@ public class SftpFileTransfer {
 
     public void list() {
         try {
+            logger.info("workdir: {}", WORKDIR);
             listDirectories(WORKDIR);
             listFilesInPath(WORKDIR);
         } catch (SftpException e) {
@@ -102,8 +108,9 @@ public class SftpFileTransfer {
     private ChannelSftp setupJsch() throws JSchException {
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
-        String privateKey = appSecretsService.getNetsSecret();
-        String passphrase = appSecretsService.getNetsPassphrase();
+        logger.info("privateKey: {}, passphrase: {}", privateKey, passphrase);
+        privateKey = privateKey != null && !privateKey.isEmpty() ? privateKey : appSecretsService.getNetsSecret();
+        passphrase = passphrase != null && !passphrase.isEmpty() ? passphrase : appSecretsService.getNetsPassphrase();
         jsch.addIdentity(privateKey, passphrase);
         jschSession = jsch.getSession(USER, HOST, PORT);
         jschSession.setConfig("StrictHostKeyChecking", "no");
