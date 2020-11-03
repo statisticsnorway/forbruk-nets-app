@@ -1,5 +1,10 @@
 package no.ssb.forbruk.nets.sftp;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Vector;
@@ -44,41 +49,47 @@ public class SftpFileTransfer {
     @Value("${forbruk.nets.passphrase}")
     private String passphrase;
 
+    @Value("${forbruk.nets.filedir}")
+    private String fileDir;
+
     @Autowired
     AppSecretsService appSecretsService;
 
     @Autowired
     NetsRecordRepository netsRecordRepository;
 
-    private static Session jschSession;
+    private static ChannelSftp channelSftp;
+    private Session jschSession;
 
     public void list() {
         try {
+            setupJsch();
             logger.info("workdir: {}", WORKDIR);
             listDirectories(WORKDIR);
             listFilesInPath(WORKDIR);
+//            saveFilesInPath(WORKDIR);
         } catch (SftpException e) {
             logger.error("Sftp-feil: {}", e.toString());
         } catch (JSchException e) {
-            logger.info("jsch-feil: {}", e.toString());
+            logger.error("jsch-feil: {}", e.toString());
         }
+        disconnectJsch();
     }
 
-    void listFilesInPath(String path) throws SftpException, JSchException {
-        fileList(path).forEach(this::saveFileRecord);
+
+    void saveFilesInPath(String path) throws SftpException {
+        fileList(path).forEach(this::saveFile);
     }
 
-    void listDirectories(String path) throws SftpException, JSchException {
-
-        ChannelSftp channelSftp = setupJsch();
-        channelSftp.connect(CHANNEL_TIMEOUT);
-        listDirectory(channelSftp, path);
-
-        channelSftp.disconnect();
-        jschSession.disconnect();
+    void listDirectories(String path) throws SftpException {
+        listDirectory(path);
     }
 
-    static void listDirectory(ChannelSftp channelSftp, String path) throws SftpException {
+    void listFilesInPath(String path) throws SftpException {
+        fileList(path).forEach(f -> logger.info("file in {}: {}", path, f.getFilename()));
+    }
+
+    static void listDirectory(String path) throws SftpException {
         Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
         for (ChannelSftp.LsEntry entry : files) {
             logger.info("entry: {}", entry.toString());
@@ -87,42 +98,70 @@ public class SftpFileTransfer {
                 logger.info("file: {}/{}" , path, entry.getFilename());
             } else {
                 if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) {
-                    listDirectory(channelSftp, path + "/" + entry.getFilename());
+                    listDirectory(path + "/" + entry.getFilename());
                 }
             }
         }
     }
 
 
-    Collection<ChannelSftp.LsEntry> fileList(String path) throws JSchException, SftpException {
-        ChannelSftp channelSftp = setupJsch();
-        channelSftp.connect(CHANNEL_TIMEOUT);
-
+    private Collection<ChannelSftp.LsEntry> fileList(String path) throws SftpException {
         Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
         Collection<ChannelSftp.LsEntry> fileList = Collections.list(files.elements());
-        channelSftp.disconnect();
-        jschSession.disconnect();
         return fileList;
     }
 
-    private ChannelSftp setupJsch() throws JSchException {
+
+    private void saveFile(ChannelSftp.LsEntry f) {
+        logger.info("file in path: {}", f.getFilename());
+        try {
+//            channelSftp.get(WORKDIR + "/" + f.getFilename()), fileDir + f.getFilename());
+            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            try {
+                BufferedReader br = new BufferedReader(new InputStreamReader(fileStream));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    logger.info(line);
+                }
+            } catch (IOException io) {
+                logger.error("IOException occurred during handling file from SFTP server due to {}", io.getMessage());
+            } catch (Exception e) {
+                logger.error("Exception occurred during handling file from SFTP server due to {}", e.getMessage());
+            }
+
+            saveFileRecord(f);
+        } catch (SftpException e) {
+            logger.error("Error in saving file {}: {}", f.getFilename(), e.getMessage());
+        }
+    }
+
+    private void saveFileRecord(ChannelSftp.LsEntry f) {
+        logger.info("file in path: {}", f.getLongname());
+        NetsRecord nr = new NetsRecord();
+        nr.setContent(f.getLongname());
+        nr.setTimestamp(LocalDateTime.now());
+        NetsRecord saved = netsRecordRepository.save(nr);
+    }
+
+
+
+
+    private void setupJsch() throws JSchException {
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
-        logger.info("privateKey: {}, passphrase: {}", privateKey, passphrase);
         privateKey = privateKey != null && !privateKey.isEmpty() ? privateKey : appSecretsService.getNetsSecret();
         passphrase = passphrase != null && !passphrase.isEmpty() ? passphrase : appSecretsService.getNetsPassphrase();
         jsch.addIdentity(privateKey, passphrase);
         jschSession = jsch.getSession(USER, HOST, PORT);
         jschSession.setConfig("StrictHostKeyChecking", "no");
         jschSession.connect(SESSION_TIMEOUT);
-        return (ChannelSftp) jschSession.openChannel("sftp");
+        channelSftp = (ChannelSftp) jschSession.openChannel("sftp");
+        channelSftp.connect(CHANNEL_TIMEOUT);
     }
 
 
-    private void saveFileRecord(ChannelSftp.LsEntry f) {
-        logger.info("file in path: {}", f.getLongname());
-        NetsRecord nr = new NetsRecord();
-        nr.setContent(f.getLongname());
-        NetsRecord saved = netsRecordRepository.save(nr);
+    private void disconnectJsch() {
+        channelSftp.disconnect();
+        jschSession.disconnect();
     }
 }

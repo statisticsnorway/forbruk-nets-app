@@ -81,7 +81,7 @@ public class AppSecretsService {
      */
     private String getSecretVersionData(String secretName, String secretVersion) {
         //Edge-logging since we are invoking an external API
-        logger.info("projectId: {}, netsSecretName: {}, netsSecretVersion: {}", projectId, netsSecretName, netsSecretVersion);
+//        logger.info("projectId: {}, netsSecretName: {}, netsSecretVersion: {}", projectId, netsSecretName, netsSecretVersion);
 
         MDC.put("nets-appname", projectId);
         MDC.put("nets-secret-name", secretName);

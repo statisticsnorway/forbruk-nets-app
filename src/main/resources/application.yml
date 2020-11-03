@@ -4,6 +4,13 @@ webserver:
   access-log:
     format: "%h %u %t %r %s %b %{Referer}i %T"
 
+
+storage:
+  provider: gcp
+google:
+  storage:
+    provider:
+      bucket: raw-datastore
 #data-access:
 #  provider: no.ssb.dapla.data.access.service.GoogleDataAccessService
 
@@ -56,8 +63,8 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     show-sql: true
-    hibernate:
-      ddl-auto: create
+#    hibernate:
+#      ddl-auto: create
   h2:
     console:
       enabled: true
@@ -65,6 +72,8 @@ spring:
       settings:
         trace: false
         web-allow-others: false
+#  flyway:
+#    locations: ./src/main/resources/db/migration
 
 
 # Project where Secret Manager is enabled and secrets stored
@@ -93,8 +102,10 @@ forbruk:
     workdir: "./Outbound"
     privatekey:
     passphrase:
+    filedir:
 
 # Scheduler
 scheduled:
   cron:
     listfiles: "0 10 6-16 * * ?"
+
