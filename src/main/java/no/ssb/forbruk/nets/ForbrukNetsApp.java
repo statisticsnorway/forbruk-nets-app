@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableScheduling
+//@EnableScheduling
 public class ForbrukNetsApp {
 
 	private static final Logger logger = LoggerFactory.getLogger(ForbrukNetsApp.class);
