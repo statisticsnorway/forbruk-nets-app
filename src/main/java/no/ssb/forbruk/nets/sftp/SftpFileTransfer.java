@@ -16,7 +16,6 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import no.ssb.forbruk.nets.model.NetsRecord;
 import no.ssb.forbruk.nets.repository.NetsRecordRepository;
-import no.ssb.forbruk.nets.service.AppSecretsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +30,7 @@ import javax.transaction.Transactional;
 public class SftpFileTransfer {
     private static final Logger logger = LoggerFactory.getLogger(SftpFileTransfer.class);
 
+
     @Value("${forbruk.nets.host}")
     private String HOST;
     @Value("${forbruk.nets.user}")
@@ -44,16 +44,14 @@ public class SftpFileTransfer {
     @Value("${forbruk.nets.workdir}")
     private String WORKDIR;
 
-    @Value("${forbruk.nets.privatekey}")
-    private String privateKey;
-    @Value("${forbruk.nets.passphrase}")
+
+    @Value("#{environment.NETS_PASSPHRASE_STAGING}")
     private String passphrase;
+    @Value("#{environment.NETS_SECRET_STAGING}")
+    private String privateKey;
 
     @Value("${forbruk.nets.filedir}")
     private String fileDir;
-
-    @Autowired
-    AppSecretsService appSecretsService;
 
     @Autowired
     NetsRecordRepository netsRecordRepository;
@@ -91,6 +89,7 @@ public class SftpFileTransfer {
 
     static void listDirectory(String path) throws SftpException {
         Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
+        logger.info("List files in {}", path);
         for (ChannelSftp.LsEntry entry : files) {
             logger.info("entry: {}", entry.toString());
             if (!entry.getAttrs().isDir()) {
@@ -149,8 +148,6 @@ public class SftpFileTransfer {
     private void setupJsch() throws JSchException {
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
-        privateKey = privateKey != null && !privateKey.isEmpty() ? privateKey : appSecretsService.getNetsSecret();
-        passphrase = passphrase != null && !passphrase.isEmpty() ? passphrase : appSecretsService.getNetsPassphrase();
         jsch.addIdentity(privateKey, passphrase);
         jschSession = jsch.getSession(USER, HOST, PORT);
         jschSession.setConfig("StrictHostKeyChecking", "no");
@@ -163,5 +160,9 @@ public class SftpFileTransfer {
     private void disconnectJsch() {
         channelSftp.disconnect();
         jschSession.disconnect();
+    }
+
+    public boolean secretsOk() {
+        return passphrase != null && !passphrase.isEmpty() && privateKey != null && !privateKey.isEmpty();
     }
 }
