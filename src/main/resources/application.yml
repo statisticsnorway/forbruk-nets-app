@@ -63,7 +63,8 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     show-sql: true
-#    hibernate:
+    open-in-view: false
+  #    hibernate:
 #      ddl-auto: create
   h2:
     console:
@@ -76,20 +77,20 @@ spring:
 #    locations: ./src/main/resources/db/migration
 
 
-# Project where Secret Manager is enabled and secrets stored
-bip:
-  gcp:
-    secrets:
-      projectname: forbruk-staging
-# Name and versions of secrets
-      nets:
-        ftp:
-          privkey:
-            name: NETS_SECRET_STAGING
-            version: latest
-          passphrase:
-            name: NETS_PASSPHRASE_STAGING
-            version: latest
+## Project where Secret Manager is enabled and secrets stored
+#bip:
+#  gcp:
+#    secrets:
+#      projectname: forbruk-staging
+## Name and versions of secrets
+#      nets:
+#        ftp:
+#          privkey:
+#            name: NETS_SECRET_STAGING
+#            version: latest
+#          passphrase:
+#            name: NETS_PASSPHRASE_STAGING
+#            version: latest
 
 # Configuration used in connection to NETS
 forbruk:
