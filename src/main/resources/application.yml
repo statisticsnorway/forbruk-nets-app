@@ -5,12 +5,13 @@ webserver:
     format: "%h %u %t %r %s %b %{Referer}i %T"
 
 
-storage:
-  provider: gcp
-google:
-  storage:
-    provider:
-      bucket: raw-datastore
+#storage:
+#  provider: gcp
+#google:
+#  storage:
+#    provider:
+#      bucket: raw-datastore
+
 #data-access:
 #  provider: no.ssb.dapla.data.access.service.GoogleDataAccessService
 
@@ -46,7 +47,7 @@ tracing:
       enabled: false
     - path: "/health"
       enabled: false
-    - path: "/health/live"
+    - path: "/health/alive"
       enabled: false
     - path: "/health/ready"
       enabled: false
