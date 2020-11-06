@@ -22,11 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
-
 
 @Service
-@Transactional
 public class SftpFileTransfer {
     private static final Logger logger = LoggerFactory.getLogger(SftpFileTransfer.class);
 
@@ -63,6 +60,7 @@ public class SftpFileTransfer {
         try {
             setupJsch();
             logger.info("workdir: {}", WORKDIR);
+            saveFileRecord("list files in " + WORKDIR);
             listDirectories(WORKDIR);
             listFilesInPath(WORKDIR);
 //            saveFilesInPath(WORKDIR);
@@ -128,16 +126,16 @@ public class SftpFileTransfer {
                 logger.error("Exception occurred during handling file from SFTP server due to {}", e.getMessage());
             }
 
-            saveFileRecord(f);
+            saveFileRecord(f.getLongname());
         } catch (SftpException e) {
             logger.error("Error in saving file {}: {}", f.getFilename(), e.getMessage());
         }
     }
 
-    private void saveFileRecord(ChannelSftp.LsEntry f) {
-        logger.info("file in path: {}", f.getLongname());
+        private void saveFileRecord(String content) {
+        logger.info("file in path: {}", content);
         NetsRecord nr = new NetsRecord();
-        nr.setContent(f.getLongname());
+        nr.setContent(content);
         nr.setTimestamp(LocalDateTime.now());
         NetsRecord saved = netsRecordRepository.save(nr);
     }
