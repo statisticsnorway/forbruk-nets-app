@@ -64,8 +64,8 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     show-sql: true
     open-in-view: false
-  #    hibernate:
-#      ddl-auto: create
+    hibernate:
+      ddl-auto: create
   h2:
     console:
       enabled: true
