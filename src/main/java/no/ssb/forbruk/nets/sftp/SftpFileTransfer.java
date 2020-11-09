@@ -159,21 +159,32 @@ public class SftpFileTransfer {
         Files.write(Path.of(tmpPrivateKeyFile),
                     privatekeyfile.isEmpty() ?
                     privateKey.getBytes() : Files.readAllBytes(Path.of(privatekeyfile)));
-
+        logger.info("privatekey: {}", Files.readString(Path.of(tmpPrivateKeyFile)).substring(0,200));
         jsch.addIdentity(tmpPrivateKeyFile, passphrase);
+        logger.info("get jschSession");
         jschSession = jsch.getSession(USER, HOST, PORT);
+        logger.info("set StrictHostKeyChecking to no");
         jschSession.setConfig("StrictHostKeyChecking", "no");
+        logger.info("connect with session timeout {}", SESSION_TIMEOUT);
         jschSession.connect(SESSION_TIMEOUT);
+        logger.info("open channel eith type sftp");
         channelSftp = (ChannelSftp) jschSession.openChannel("sftp");
+        logger.info("connect with channel timeout {}", CHANNEL_TIMEOUT);
         channelSftp.connect(CHANNEL_TIMEOUT);
+        logger.info("delete tmp file if exists ({})", Files.exists(Path.of(tmpPrivateKeyFile)));
         Files.deleteIfExists(Path.of(tmpPrivateKeyFile));
+        logger.info("Connected?: {}", channelSftp.isConnected());
     }
 
 
 
     private void disconnectJsch() {
-        channelSftp.disconnect();
-        jschSession.disconnect();
+        if (channelSftp.isConnected()) {
+            channelSftp.disconnect();
+        }
+        if (jschSession.isConnected()) {
+            jschSession.disconnect();
+        }
     }
 
     public boolean secretsOk() {
