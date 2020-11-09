@@ -19,6 +19,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import no.ssb.forbruk.nets.model.NetsRecord;
 import no.ssb.forbruk.nets.repository.NetsRecordRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -159,7 +160,8 @@ public class SftpFileTransfer {
         Files.write(Path.of(tmpPrivateKeyFile),
                     privatekeyfile.isEmpty() ?
                     privateKey.getBytes() : Files.readAllBytes(Path.of(privatekeyfile)));
-        logger.info("privatekey: {}", Files.readString(Path.of(tmpPrivateKeyFile)).substring(0,200));
+        logger.info("privatekey: {}", Files.readString(Path.of(tmpPrivateKeyFile)).substring(0,70));
+        logger.info("privatekey: {}", StringUtils.substring(Files.readString(Path.of(tmpPrivateKeyFile)),-50));
         jsch.addIdentity(tmpPrivateKeyFile, passphrase);
         logger.info("get jschSession");
         jschSession = jsch.getSession(USER, HOST, PORT);
