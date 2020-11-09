@@ -74,6 +74,7 @@ spring:
       settings:
         trace: false
         web-allow-others: false
+
 #  flyway:
 #    locations: ./src/main/resources/db/migration
 
@@ -92,6 +93,9 @@ spring:
 #          passphrase:
 #            name: NETS_PASSPHRASE_STAGING
 #            version: latest
+
+server:
+  port: 8080
 
 # Configuration used in connection to NETS
 forbruk:
