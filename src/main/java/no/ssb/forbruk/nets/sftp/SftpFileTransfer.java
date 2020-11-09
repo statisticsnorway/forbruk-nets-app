@@ -1,9 +1,12 @@
 package no.ssb.forbruk.nets.sftp;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +43,8 @@ public class SftpFileTransfer {
     private int CHANNEL_TIMEOUT;
     @Value("${forbruk.nets.workdir}")
     private String WORKDIR;
+    @Value("${forbruk.nets.privatekeyfile}")
+    private String privatekeyfile;
 
 
     @Value("#{environment.NETS_PASSPHRASE_STAGING}")
@@ -64,6 +69,8 @@ public class SftpFileTransfer {
             listDirectories(WORKDIR);
             listFilesInPath(WORKDIR);
 //            saveFilesInPath(WORKDIR);
+        } catch (IOException e) {
+            logger.error("IO-feil: {}", e.toString());
         } catch (SftpException e) {
             logger.error("Sftp-feil: {}", e.toString());
         } catch (JSchException e) {
@@ -143,16 +150,25 @@ public class SftpFileTransfer {
 
 
 
-    private void setupJsch() throws JSchException {
+    private void setupJsch() throws JSchException, IOException {
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
-        jsch.addIdentity(privateKey, passphrase);
+
+        String tmpPrivateKeyFile = "tmp/" + "nets" + ".pk";
+        logger.info("privateKeyFile: {}", tmpPrivateKeyFile);
+        Files.write(Path.of(tmpPrivateKeyFile),
+                    privatekeyfile.isEmpty() ?
+                    privateKey.getBytes() : Files.readAllBytes(Path.of(privatekeyfile)));
+
+        jsch.addIdentity(tmpPrivateKeyFile, passphrase);
         jschSession = jsch.getSession(USER, HOST, PORT);
         jschSession.setConfig("StrictHostKeyChecking", "no");
         jschSession.connect(SESSION_TIMEOUT);
         channelSftp = (ChannelSftp) jschSession.openChannel("sftp");
         channelSftp.connect(CHANNEL_TIMEOUT);
+        Files.deleteIfExists(Path.of(tmpPrivateKeyFile));
     }
+
 
 
     private void disconnectJsch() {
