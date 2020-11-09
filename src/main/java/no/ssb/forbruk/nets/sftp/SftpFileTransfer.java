@@ -167,7 +167,9 @@ public class SftpFileTransfer {
         jschSession.setConfig("StrictHostKeyChecking", "no");
         logger.info("connect with session timeout {}", SESSION_TIMEOUT);
         jschSession.connect(SESSION_TIMEOUT);
-        logger.info("open channel eith type sftp");
+        logger.info("jsession connected ? {}", jschSession.isConnected());
+
+        logger.info("open channel with type sftp");
         channelSftp = (ChannelSftp) jschSession.openChannel("sftp");
         logger.info("connect with channel timeout {}", CHANNEL_TIMEOUT);
         channelSftp.connect(CHANNEL_TIMEOUT);
