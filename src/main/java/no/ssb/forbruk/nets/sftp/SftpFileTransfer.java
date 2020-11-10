@@ -72,7 +72,7 @@ public class SftpFileTransfer {
             saveFileRecord("list files in " + WORKDIR);
             listDirectories(WORKDIR);
             listFilesInPath(WORKDIR);
-//            saveFilesInPath(WORKDIR);
+            saveFilesInPath(WORKDIR);
         } catch (IOException e) {
             logger.error("IO-feil: {}", e.toString());
         } catch (SftpException e) {
