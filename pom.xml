@@ -192,6 +192,12 @@
 		</dependency>
 
 		<!-- Avro-convert -->
+		<dependency>
+			<groupId>no.ssb.avro.convert.csv</groupId>
+			<artifactId>avro-buddy-csv</artifactId>
+			<version>0.0.4</version>
+		</dependency>
+
 		<!-- https://mvnrepository.com/artifact/org.json/json -->
 <!--		<dependency>-->
 <!--			<groupId>org.json</groupId>-->

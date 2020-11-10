@@ -1,15 +1,13 @@
 package no.ssb.forbruk.nets.sftp;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -17,8 +15,10 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
+import no.ssb.forbruk.nets.avro.AvroConverter;
 import no.ssb.forbruk.nets.model.NetsRecord;
 import no.ssb.forbruk.nets.repository.NetsRecordRepository;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,12 +59,15 @@ public class SftpFileTransfer {
     @Autowired
     NetsRecordRepository netsRecordRepository;
 
+    private AvroConverter avroConverter;
+
     private static ChannelSftp channelSftp;
     private Session jschSession;
 
     public void list() {
         try {
             setupJsch();
+            avroConverter = new AvroConverter("netsTransaction.avsc");
             logger.info("workdir: {}", WORKDIR);
             saveFileRecord("list files in " + WORKDIR);
             listDirectories(WORKDIR);
@@ -122,16 +125,12 @@ public class SftpFileTransfer {
         try {
 //            channelSftp.get(WORKDIR + "/" + f.getFilename()), fileDir + f.getFilename());
             InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            List<GenericRecord> records;
             try {
-                BufferedReader br = new BufferedReader(new InputStreamReader(fileStream));
-                String line;
-                while ((line = br.readLine()) != null) {
-                    logger.info(line);
-                }
-            } catch (IOException io) {
-                logger.error("IOException occurred during handling file from SFTP server due to {}", io.getMessage());
-            } catch (Exception e) {
-                logger.error("Exception occurred during handling file from SFTP server due to {}", e.getMessage());
+                records = avroConverter.convertCsvToAvro(fileStream, ";");
+                logger.info("Converted to {}", records);
+            } catch (IOException e) {
+                logger.error("Error in reading filestream for {}: {}", f.getFilename(), e.getMessage());
             }
 
             saveFileRecord(f.getLongname());
@@ -140,12 +139,18 @@ public class SftpFileTransfer {
         }
     }
 
-        private void saveFileRecord(String content) {
+    private void saveFileRecord(String content) {
         logger.info("file in path: {}", content);
         NetsRecord nr = new NetsRecord();
         nr.setContent(content);
         nr.setTimestamp(LocalDateTime.now());
         NetsRecord saved = netsRecordRepository.save(nr);
+    }
+
+
+    private void convertToAvro() {
+        AvroConverter avroConverter = new AvroConverter();
+
     }
 
 
