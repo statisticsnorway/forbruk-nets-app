@@ -1,0 +1,30 @@
+server:
+  port: 8079
+
+# Configuration used in connection to NETS
+forbruk:
+  nets:
+    host: 91.102.24.144
+    user: tSSBNO
+    port: 22
+    session_timeout: 10000
+    channel_timeout: 5000
+    workdir: "./Outbound"
+    privatekeyfile:
+    filedir: "./test/resources/files"
+
+# Scheduler
+scheduled:
+  cron:
+    listfiles: "0 0/2 6-16 * * ?"
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: username
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+
+
