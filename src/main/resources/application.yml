@@ -58,9 +58,9 @@ spring:
     banner-mode: off
   datasource:
     platform: postgres
-    url: jdbc:postgresql://127.0.0.1:5432/forbruk-nets-app-db
-    username: sa
-    password: password
+    url: jdbc:postgresql://localhost:5432/forbruk-nets-app-db
+    username: dummy_value
+    password: dummy_value
   jpa:
     database: POSTGRESQL
     show-sql: true
