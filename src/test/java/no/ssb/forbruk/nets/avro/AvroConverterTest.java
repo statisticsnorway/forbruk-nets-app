@@ -30,6 +30,7 @@ class AvroConverterTest {
     public void testAvroConverterFile() {
         List<GenericRecord> records = new ArrayList<>();
         try {
+            logger.info("call avroconverter for testNetsResponse.csv");
             records = avroConverter.convertCsvToAvro("testNetsResponse.csv", ";");
             logger.info("File converted: {}", records);
 

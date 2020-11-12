@@ -41,10 +41,11 @@ public class AvroConverter {
 
     public List<GenericRecord> convertCsvToAvro(InputStream csvInputStream, String delimiter) throws IOException {
         List<GenericRecord> records = new ArrayList<>();
-        logger.info("call avroconverter for stream {}", new String(csvInputStream.readAllBytes()));
+//        logger.info("call avroconverter for stream {}", new String(csvInputStream.readAllBytes()));
         try (CsvToRecords csvToRecords = new CsvToRecords(csvInputStream, schema, Map.of("delimiters", delimiter))) {
             csvToRecords.forEach(records::add);
         }
+        logger.info("records converted: {}", records.size());
         return records;
     }
 
