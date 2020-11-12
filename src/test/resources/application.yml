@@ -11,7 +11,7 @@ forbruk:
     channel_timeout: 5000
     workdir: "./Outbound"
     privatekeyfile:
-    filedir: "./test/resources/files"
+    filedir: "tmp/"
 
 # Scheduler
 scheduled:

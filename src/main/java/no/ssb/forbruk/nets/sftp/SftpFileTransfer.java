@@ -123,7 +123,9 @@ public class SftpFileTransfer {
     private void saveFile(ChannelSftp.LsEntry f) {
         logger.info("file in path: {}", f.getFilename());
         try {
-//            channelSftp.get(WORKDIR + "/" + f.getFilename()), fileDir + f.getFilename());
+            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
+            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
+
             InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
             List<GenericRecord> records;
             try {
@@ -134,8 +136,8 @@ public class SftpFileTransfer {
             }
 
             saveFileRecord(f.getLongname());
-        } catch (SftpException e) {
-            logger.error("Error in saving file {}: {}", f.getFilename(), e.getMessage());
+        } catch (SftpException | IOException e) {
+            logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
         }
     }
 
