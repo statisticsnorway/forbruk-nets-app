@@ -1,5 +1,7 @@
 package no.ssb.forbruk.nets.sftp;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -126,7 +128,9 @@ public class SftpFileTransfer {
             channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
             Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
-            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+//            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            File file;
+            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
             List<GenericRecord> records;
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
