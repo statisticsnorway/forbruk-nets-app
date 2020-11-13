@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -129,8 +130,8 @@ public class SftpFileTransfer {
             Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
 //            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
-            File file;
-            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
+//            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
+            InputStream fileStream = new FileInputStream(new File(fileDir + "testNetsResponse.csv"));
             List<GenericRecord> records;
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
