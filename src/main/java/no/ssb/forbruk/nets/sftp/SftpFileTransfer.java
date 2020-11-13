@@ -73,8 +73,8 @@ public class SftpFileTransfer {
             avroConverter = new AvroConverter("netsTransaction.avsc");
             logger.info("workdir: {}", WORKDIR);
             saveFileRecord("list files in " + WORKDIR);
-            listDirectories(WORKDIR);
-            listFilesInPath(WORKDIR);
+//            listDirectories(WORKDIR);
+//            listFilesInPath(WORKDIR);
             saveFilesInPath(WORKDIR);
         } catch (IOException e) {
             logger.error("IO-feil: {}", e.toString());
@@ -101,11 +101,11 @@ public class SftpFileTransfer {
 
     static void listDirectory(String path) throws SftpException {
         Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
-        logger.info("List files in {}", path);
+//        logger.info("List files in {}", path);
         for (ChannelSftp.LsEntry entry : files) {
-            logger.info("entry: {}", entry.toString());
+//            logger.info("entry: {}", entry.toString());
             if (!entry.getAttrs().isDir()) {
-                logger.info("path: {}", path);
+//                logger.info("path: {}", path);
                 logger.info("file: {}/{}" , path, entry.getFilename());
             } else {
                 if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) {
@@ -126,12 +126,12 @@ public class SftpFileTransfer {
     private void saveFile(ChannelSftp.LsEntry f) {
         logger.info("file in path: {}", f.getFilename());
         try {
-            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
-            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
+//            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
+//            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
 //            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
 //            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
-            InputStream fileStream = new FileInputStream(new File(fileDir + "testNetsResponse.csv"));
+            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
             List<GenericRecord> records;
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
@@ -141,7 +141,8 @@ public class SftpFileTransfer {
             }
 
             saveFileRecord(f.getLongname());
-        } catch (SftpException | IOException e) {
+//        } catch (SftpException | IOException e) {
+        } catch (Exception e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
         }
     }
@@ -161,8 +162,6 @@ public class SftpFileTransfer {
     }
 
 
-
-
     private void setupJsch() throws JSchException, IOException {
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
@@ -172,22 +171,16 @@ public class SftpFileTransfer {
         Files.write(Path.of(tmpPrivateKeyFile),
                     privatekeyfile.isEmpty() ?
                     privateKey.getBytes() : Files.readAllBytes(Path.of(privatekeyfile)));
-        logger.info("privatekey: {}", Files.readString(Path.of(tmpPrivateKeyFile)).substring(0,70));
-        logger.info("privatekey: {}", StringUtils.substring(Files.readString(Path.of(tmpPrivateKeyFile)),-50));
+//        logger.info("privatekey: {}", Files.readString(Path.of(tmpPrivateKeyFile)).substring(0,70));
+//        logger.info("privatekey: {}", StringUtils.substring(Files.readString(Path.of(tmpPrivateKeyFile)),-50));
         jsch.addIdentity(tmpPrivateKeyFile, passphrase);
-        logger.info("get jschSession");
         jschSession = jsch.getSession(USER, HOST, PORT);
-        logger.info("set StrictHostKeyChecking to no");
         jschSession.setConfig("StrictHostKeyChecking", "no");
-        logger.info("connect with session timeout {}", SESSION_TIMEOUT);
         jschSession.connect(SESSION_TIMEOUT);
-        logger.info("jsession connected ? {}", jschSession.isConnected());
 
-        logger.info("open channel with type sftp");
         channelSftp = (ChannelSftp) jschSession.openChannel("sftp");
-        logger.info("connect with channel timeout {}", CHANNEL_TIMEOUT);
         channelSftp.connect(CHANNEL_TIMEOUT);
-        logger.info("delete tmp file if exists ({})", Files.exists(Path.of(tmpPrivateKeyFile)));
+//        logger.info("delete tmp file if exists ({})", Files.exists(Path.of(tmpPrivateKeyFile)));
         Files.deleteIfExists(Path.of(tmpPrivateKeyFile));
         logger.info("Connected?: {}", channelSftp.isConnected());
     }
