@@ -57,4 +57,8 @@ public class AvroConverter {
     private InputStream getCsvFile(String fileName) throws IOException {
         return getClass().getClassLoader().getResourceAsStream(fileName);
     }
+
+    public Schema getSchema() {
+        return this.schema;
+    }
 }

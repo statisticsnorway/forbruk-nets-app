@@ -12,6 +12,7 @@ forbruk:
     workdir: "./Outbound"
     privatekeyfile:
     filedir: "tmp/"
+  env: local
 
 # Scheduler
 scheduled:

@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Vector;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -17,6 +18,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
+import no.ssb.dapla.storage.client.DatasetStorage;
 import no.ssb.forbruk.nets.avro.AvroConverter;
 import no.ssb.forbruk.nets.model.NetsRecord;
 import no.ssb.forbruk.nets.repository.NetsRecordRepository;
@@ -57,6 +59,8 @@ public class SftpFileTransfer {
 
     @Value("${forbruk.nets.filedir}")
     private String fileDir;
+    @Value("${forbruk.env}")
+    private String runenv;
 
     @Autowired
     NetsRecordRepository netsRecordRepository;
@@ -68,17 +72,14 @@ public class SftpFileTransfer {
     private static ChannelSftp channelSftp;
     private Session jschSession;
 
-    public void list() {
+    public void getAndHandleNetsFiles() {
         try {
             setupJsch();
             avroConverter = new AvroConverter("netsTransaction.avsc");
-            googleCloudStorage = new GoogleCloudStorage();
-            logger.info("AvroConverter: {}", avroConverter.toString());
-            logger.info("workdir: {}", WORKDIR);
-            saveFileRecord("list files in " + WORKDIR);
-//            listDirectories(WORKDIR);
-//            listFilesInPath(WORKDIR);
-            saveFilesInPath(WORKDIR);
+            googleCloudStorage = new GoogleCloudStorage(runenv);
+
+            /* handle files in path */
+            fileList(WORKDIR).forEach(this::handleFile);
         } catch (IOException e) {
             logger.error("IO-feil: {}", e.toString());
         } catch (SftpException e) {
@@ -90,35 +91,6 @@ public class SftpFileTransfer {
     }
 
 
-    void saveFilesInPath(String path) throws SftpException {
-        fileList(path).forEach(this::saveFile);
-    }
-
-    void listDirectories(String path) throws SftpException {
-        listDirectory(path);
-    }
-
-    void listFilesInPath(String path) throws SftpException {
-        fileList(path).forEach(f -> logger.info("file in {}: {}", path, f.getFilename()));
-    }
-
-    static void listDirectory(String path) throws SftpException {
-        Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
-//        logger.info("List files in {}", path);
-        for (ChannelSftp.LsEntry entry : files) {
-//            logger.info("entry: {}", entry.toString());
-            if (!entry.getAttrs().isDir()) {
-//                logger.info("path: {}", path);
-                logger.info("file: {}/{}" , path, entry.getFilename());
-            } else {
-                if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) {
-                    listDirectory(path + "/" + entry.getFilename());
-                }
-            }
-        }
-    }
-
-
     private Collection<ChannelSftp.LsEntry> fileList(String path) throws SftpException {
         Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
         Collection<ChannelSftp.LsEntry> fileList = Collections.list(files.elements());
@@ -126,22 +98,30 @@ public class SftpFileTransfer {
     }
 
 
-    private void saveFile(ChannelSftp.LsEntry f) {
+    private void handleFile(ChannelSftp.LsEntry f) {
         logger.info("file in path: {}", f.getFilename());
         try {
+            /** Test 1: Get netsfile and save it to filedir immediately */
 //            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
 //            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
-//            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            /** Test 2: Get netsfile as inputstream, convert it to avroRecords and save these */
+            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
 //            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
-            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
+//            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
             List<GenericRecord> records;
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
                 logger.info("Converted to {}", records);
+                googleCloudStorage.writeRecordsToStorage(records, avroConverter.getSchema(), fileDir);
             } catch (IOException e) {
                 logger.error("Error in reading filestream for {}: {}", f.getFilename(), e.getMessage());
             }
+            logger.info("write to gcs");
+
+            /** Test 3: use googleCloudStorage and write file to storage - must re-get the file **/
+            InputStream storeFileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            googleCloudStorage.writeInputStreamToStorage(storeFileStream, fileDir+"storage_"+f.getFilename());
 
             saveFileRecord(f.getLongname());
 //        } catch (SftpException | IOException e) {
@@ -159,10 +139,6 @@ public class SftpFileTransfer {
     }
 
 
-    private void convertToAvro() {
-        AvroConverter avroConverter = new AvroConverter();
-
-    }
 
 
     private void setupJsch() throws JSchException, IOException {
@@ -202,4 +178,46 @@ public class SftpFileTransfer {
     public boolean secretsOk() {
         return passphrase != null && !passphrase.isEmpty() && privateKey != null && !privateKey.isEmpty();
     }
+
+
+
+    /***********************/
+    /** Just for testing ***/
+    /***********************/
+    public void list () {
+        try {
+            setupJsch();
+            listFilesInPath(WORKDIR);
+            listDirectory(WORKDIR);
+        } catch (IOException e) {
+            logger.error("IO-feil: {}", e.toString());
+        } catch (SftpException e) {
+            logger.error("Sftp-feil: {}", e.toString());
+        } catch (JSchException e) {
+            logger.error("jsch-feil: {}", e.toString());
+        }
+    }
+
+    void listFilesInPath(String path) throws SftpException {
+        fileList(path).forEach(f -> logger.info("file in {}: {}", path, f.getFilename()));
+    }
+
+    static void listDirectory(String path) throws SftpException {
+        Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
+//        logger.info("List files in {}", path);
+        for (ChannelSftp.LsEntry entry : files) {
+//            logger.info("entry: {}", entry.toString());
+            if (!entry.getAttrs().isDir()) {
+//                logger.info("path: {}", path);
+                logger.info("file: {}/{}" , path, entry.getFilename());
+            } else {
+                if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) {
+                    listDirectory(path + "/" + entry.getFilename());
+                }
+            }
+        }
+    }
+
+
+
 }
