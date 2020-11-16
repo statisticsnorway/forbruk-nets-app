@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -21,8 +20,8 @@ import com.jcraft.jsch.SftpException;
 import no.ssb.forbruk.nets.avro.AvroConverter;
 import no.ssb.forbruk.nets.model.NetsRecord;
 import no.ssb.forbruk.nets.repository.NetsRecordRepository;
+import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +63,8 @@ public class SftpFileTransfer {
 
     private AvroConverter avroConverter;
 
+    private GoogleCloudStorage googleCloudStorage;
+
     private static ChannelSftp channelSftp;
     private Session jschSession;
 
@@ -71,6 +72,8 @@ public class SftpFileTransfer {
         try {
             setupJsch();
             avroConverter = new AvroConverter("netsTransaction.avsc");
+            googleCloudStorage = new GoogleCloudStorage();
+            logger.info("AvroConverter: {}", avroConverter.toString());
             logger.info("workdir: {}", WORKDIR);
             saveFileRecord("list files in " + WORKDIR);
 //            listDirectories(WORKDIR);
