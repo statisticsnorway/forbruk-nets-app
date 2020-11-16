@@ -129,9 +129,9 @@ public class SftpFileTransfer {
 //            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
 //            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
-//            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
 //            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
-            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
+//            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
             List<GenericRecord> records;
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
