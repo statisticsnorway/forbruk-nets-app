@@ -73,9 +73,9 @@ public class SftpFileTransfer {
             avroConverter = new AvroConverter("netsTransaction.avsc");
             logger.info("workdir: {}", WORKDIR);
             saveFileRecord("list files in " + WORKDIR);
-//            listDirectories(WORKDIR);
+            listDirectory(WORKDIR);
 //            listFilesInPath(WORKDIR);
-            saveFilesInPath(WORKDIR);
+            fileList(WORKDIR).forEach(this::saveFile);
         } catch (IOException e) {
             logger.error("IO-feil: {}", e.toString());
         } catch (SftpException e) {
@@ -86,34 +86,6 @@ public class SftpFileTransfer {
         disconnectJsch();
     }
 
-
-    void saveFilesInPath(String path) throws SftpException {
-        fileList(path).forEach(this::saveFile);
-    }
-
-    void listDirectories(String path) throws SftpException {
-        listDirectory(path);
-    }
-
-    void listFilesInPath(String path) throws SftpException {
-        fileList(path).forEach(f -> logger.info("file in {}: {}", path, f.getFilename()));
-    }
-
-    static void listDirectory(String path) throws SftpException {
-        Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
-//        logger.info("List files in {}", path);
-        for (ChannelSftp.LsEntry entry : files) {
-//            logger.info("entry: {}", entry.toString());
-            if (!entry.getAttrs().isDir()) {
-//                logger.info("path: {}", path);
-                logger.info("file: {}/{}" , path, entry.getFilename());
-            } else {
-                if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) {
-                    listDirectory(path + "/" + entry.getFilename());
-                }
-            }
-        }
-    }
 
 
     private Collection<ChannelSftp.LsEntry> fileList(String path) throws SftpException {
@@ -126,11 +98,11 @@ public class SftpFileTransfer {
     private void saveFile(ChannelSftp.LsEntry f) {
         logger.info("file in path: {}", f.getFilename());
         try {
-//            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
+            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
 //            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
-            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
-//            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
+//            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
 //            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
             List<GenericRecord> records;
             try {
@@ -153,12 +125,6 @@ public class SftpFileTransfer {
         nr.setContent(content);
         nr.setTimestamp(LocalDateTime.now());
         NetsRecord saved = netsRecordRepository.save(nr);
-    }
-
-
-    private void convertToAvro() {
-        AvroConverter avroConverter = new AvroConverter();
-
     }
 
 
@@ -199,4 +165,34 @@ public class SftpFileTransfer {
     public boolean secretsOk() {
         return passphrase != null && !passphrase.isEmpty() && privateKey != null && !privateKey.isEmpty();
     }
+
+
+
+
+
+
+
+
+    void listFilesInPath(String path) throws SftpException {
+        fileList(path).forEach(f -> logger.info("file in {}: {}", path, f.getFilename()));
+    }
+
+    static void listDirectory(String path) throws SftpException {
+        Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
+//        logger.info("List files in {}", path);
+        for (ChannelSftp.LsEntry entry : files) {
+//            logger.info("entry: {}", entry.toString());
+            if (!entry.getAttrs().isDir()) {
+//                logger.info("path: {}", path);
+                logger.info("file: {}/{}" , path, entry.getFilename());
+            } else {
+                if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) {
+                    listDirectory(path + "/" + entry.getFilename());
+                }
+            }
+        }
+    }
+
+
+
 }
