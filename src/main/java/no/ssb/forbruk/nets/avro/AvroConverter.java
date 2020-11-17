@@ -24,6 +24,7 @@ public class AvroConverter {
     public AvroConverter(String schemaName) {
         try {
             this.schema = getSchema(schemaName);
+            logger.info("schema: {}", schema.toString());
         } catch (IOException e) {
             logger.info("Error in creating schema for {}: {}", schemaName, e.toString());
         }
