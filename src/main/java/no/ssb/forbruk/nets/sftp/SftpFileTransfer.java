@@ -110,9 +110,10 @@ public class SftpFileTransfer {
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
                 logger.info("Converted to {}", records);
-            } catch (IOException e) {
+            } catch (Exception e) {
 //                logger.error("Error in reading filestream for {}: {}", f.getFilename(), e.getMessage());
                 logger.error("Error in reading filestream for {}: {}", "testNetsResponse.csv", e.getMessage());
+                e.printStackTrace();
             }
 
 //            saveFileRecord(f.getLongname());
@@ -120,6 +121,7 @@ public class SftpFileTransfer {
         } catch (Exception e) {
 //            logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             logger.error("Error in saving/reading file {}: {}", "testNetsResponse.csv", e.getMessage());
+            e.printStackTrace();
         }
     }
 
