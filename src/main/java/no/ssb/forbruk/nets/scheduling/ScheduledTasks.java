@@ -17,6 +17,6 @@ public class ScheduledTasks {
 //    @Scheduled(cron = "${scheduled.cron.listfiles}")
     public void runSftpFileTransferList() {
         logger.info("schedule task - " + System.currentTimeMillis() / 1000);
-        sftpFileTransfer.list();
+        sftpFileTransfer.getAndHandleNetsFiles();
     }
 }

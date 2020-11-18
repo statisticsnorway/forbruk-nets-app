@@ -186,6 +186,30 @@
 		</dependency>
 
 		<dependency>
+			<groupId>no.ssb.dapla.storage</groupId>
+			<artifactId>dapla-storage-client</artifactId>
+			<version>4.2.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>no.ssb.config</groupId>
+			<artifactId>dynamic-configuration</artifactId>
+			<version>0.4</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>no.ssb.spi</groupId>
+			<artifactId>service-provider-api</artifactId>
+			<version>0.1</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>no.ssb.rawdata</groupId>
+			<artifactId>rawdata-client-api</artifactId>
+			<version>0.10</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.google.cloud</groupId>
 			<artifactId>google-cloud-storage</artifactId>
 			<version>1.113.2</version>

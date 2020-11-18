@@ -5,12 +5,12 @@ webserver:
     format: "%h %u %t %r %s %b %{Referer}i %T"
 
 
-#storage:
-#  provider: gcp
-#google:
-#  storage:
-#    provider:
-#      bucket: raw-datastore
+storage:
+  provider: gcp
+google:
+  storage:
+    provider:
+      bucket: nets-rawdata-staging-transactions
 
 #data-access:
 #  provider: no.ssb.dapla.data.access.service.GoogleDataAccessService
@@ -94,6 +94,7 @@ forbruk:
     workdir: "./Outbound"
     privatekeyfile:
     filedir: "tmp/"
+  env: cloud
 
 # Scheduler
 scheduled:

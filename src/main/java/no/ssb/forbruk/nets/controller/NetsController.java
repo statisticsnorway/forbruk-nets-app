@@ -22,7 +22,7 @@ public class NetsController {
     @GetMapping("/netsfiles")
     public ResponseEntity<String> runSftpFileTransferList() {
         logger.info("Called netsfiles - " + LocalDateTime.now());
-        sftpFileTransfer.list();
+        sftpFileTransfer.getAndHandleNetsFiles();
         return new ResponseEntity<>("Files treated", HttpStatus.OK);
 
     }
