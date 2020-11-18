@@ -1,5 +1,6 @@
 package no.ssb.forbruk.nets.sftp;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -107,15 +108,19 @@ public class SftpFileTransfer {
 
             /** Test 2: Get netsfile as inputstream, convert it to avroRecords and save these */
             InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            InputStream fileStream = new ByteArrayInputStream(channelSftp.get(WORKDIR + "/" + f.getFilename()).readAllBytes());
 //            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
 //            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
+//            ByteArrayInputStream fileStream = new ByteArrayInputStream(getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv").readAllBytes());
             List<GenericRecord> records;
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
                 logger.info("Converted to {}", records);
+            } catch (Exception e) {
                 googleCloudStorage.writeRecordsToStorage(records, avroConverter.getSchema(), fileDir);
             } catch (IOException e) {
                 logger.error("Error in reading filestream for {}: {}", f.getFilename(), e.getMessage());
+                e.printStackTrace();
             }
             logger.info("write to gcs");
 
@@ -124,9 +129,9 @@ public class SftpFileTransfer {
             googleCloudStorage.writeInputStreamToStorage(storeFileStream, fileDir+"storage_"+f.getFilename());
 
             saveFileRecord(f.getLongname());
-//        } catch (SftpException | IOException e) {
-        } catch (Exception e) {
+        } catch (SftpException | IOException e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -139,6 +144,10 @@ public class SftpFileTransfer {
     }
 
 
+    private void convertToAvro() {
+        AvroConverter avroConverter = new AvroConverter();
+
+    }
 
 
     private void setupJsch() throws JSchException, IOException {

@@ -24,6 +24,7 @@ public class AvroConverter {
     public AvroConverter(String schemaName) {
         try {
             this.schema = getSchema(schemaName);
+            logger.info("schema: {}", schema.toString());
         } catch (IOException e) {
             logger.info("Error in creating schema for {}: {}", schemaName, e.toString());
         }
@@ -40,7 +41,7 @@ public class AvroConverter {
     }
 
     public List<GenericRecord> convertCsvToAvro(InputStream csvInputStream, String delimiter) throws IOException {
-        logger.info("fileStream bytes available: {}", csvInputStream.available());
+        logger.info("csvInputStream bytes available: {}", csvInputStream.available());
         List<GenericRecord> records = new ArrayList<>();
 //        logger.info("call avroconverter for stream {}", new String(csvInputStream.readAllBytes()));
         try (CsvToRecords csvToRecords = new CsvToRecords(csvInputStream, schema, Map.of("delimiters", delimiter))) {
