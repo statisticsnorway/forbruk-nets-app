@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -89,6 +90,7 @@ public class SftpFileTransfer {
             logger.error("jsch-feil: {}", e.toString());
         }
         disconnectJsch();
+        printDb();
     }
 
 
@@ -107,24 +109,21 @@ public class SftpFileTransfer {
 //            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
             /** Test 2: Get netsfile as inputstream, convert it to avroRecords and save these */
-            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
-            InputStream fileStream = new ByteArrayInputStream(channelSftp.get(WORKDIR + "/" + f.getFilename()).readAllBytes());
+            ByteArrayInputStream fileStream = new ByteArrayInputStream(channelSftp.get(WORKDIR + "/" + f.getFilename()).readAllBytes());
 //            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
 //            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
 //            ByteArrayInputStream fileStream = new ByteArrayInputStream(getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv").readAllBytes());
-            List<GenericRecord> records;
+            List<GenericRecord> records = new ArrayList<>();
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
                 logger.info("Converted to {}", records);
-            } catch (Exception e) {
                 googleCloudStorage.writeRecordsToStorage(records, avroConverter.getSchema(), fileDir);
-            } catch (IOException e) {
-                logger.error("Error in reading filestream for {}: {}", f.getFilename(), e.getMessage());
+            } catch (Exception e) {
+                logger.error("Something went wrong converting file to avro or writing records to storage: {} ", e.getMessage());
                 e.printStackTrace();
             }
-            logger.info("write to gcs");
 
-            /** Test 3: use googleCloudStorage and write file to storage - must re-get the file **/
+            /** Test 3: Create inputstream from avrorecords and use googleCloudStorage to save it in starage **/
             InputStream storeFileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
             googleCloudStorage.writeInputStreamToStorage(storeFileStream, fileDir+"storage_"+f.getFilename());
 
@@ -143,10 +142,9 @@ public class SftpFileTransfer {
         NetsRecord saved = netsRecordRepository.save(nr);
     }
 
-
-    private void convertToAvro() {
-        AvroConverter avroConverter = new AvroConverter();
-
+    private void printDb() {
+        List<NetsRecord>  dbrecs = netsRecordRepository.findAll();
+        dbrecs.forEach(d -> logger.info(d.toString()));
     }
 
 

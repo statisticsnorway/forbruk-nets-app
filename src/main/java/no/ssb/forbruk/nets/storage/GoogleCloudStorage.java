@@ -95,7 +95,7 @@ public class GoogleCloudStorage {
         logger.info("write to file {}", (new File(storageLocation)).toURI().toString());
         backend.write((new File(storageLocation)).toURI().toString(), inputStream.readAllBytes());
         logger.info("written to {}: ", storageLocation);
-        Files.readAllLines(Paths.get(storageLocation)).forEach(l -> logger.info("  {}", l));
+//        Files.readAllLines(Paths.get(storageLocation)).forEach(l -> logger.info("  {}", l));
     }
 
     public void writeRecordsToStorage(List<GenericRecord> records, Schema schema, String storageLocation) {
@@ -107,22 +107,21 @@ public class GoogleCloudStorage {
         DatasetUri uri = DatasetUri.of(
                 backend.getClass().getSimpleName().equals("LocalBackend") ?
                         (new File(storageLocation)).toURI().toString() : storageLocation
-                , "just-a-path", "897");
+                , "just_a_path", "897");
 
         Flowable flowableRecords = Flowable.fromIterable(records);
         //Write records
-//        storageClient.writeAllData(uri, schema, flowableRecords).blockingAwait();
         storageClient.writeDataUnbounded(uri, schema, flowableRecords, 300, TimeUnit.SECONDS, 1000)
-                .subscribe(
-                        record -> {
-                        },
-                        throwable -> {
-                        }
-                );
+                .subscribe(record -> {},throwable -> {} );
+
         //Read back records
-        List<GenericRecord> got = storageClient.readAvroRecords(uri);
-        logger.info("records read from storage {} ({})", uri.toString(), got.size());
-        got.forEach(l -> logger.info("   {}", l.get(3)));
+        try {
+            List<GenericRecord> got = storageClient.readAvroRecords(uri);
+            logger.info("records read from storage {} ({})", uri.toString(), got.size());
+            got.forEach(l -> logger.info("   {}", l.get(3)));
+        } catch (Exception e) {
+            logger.error("Error reading saved avrorecords from storage ({}): ", uri.toString(), e.getMessage());
+        }
     }
 
 
