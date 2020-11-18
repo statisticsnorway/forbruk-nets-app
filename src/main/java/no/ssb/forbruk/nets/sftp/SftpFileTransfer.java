@@ -59,6 +59,8 @@ public class SftpFileTransfer {
     @Value("#{environment.NETS_SECRET_STAGING}")
     private String privateKey;
 
+    @Value("${google.storage.provider.bucket}")
+    private String storageBucket;
     @Value("${forbruk.nets.filedir}")
     private String fileDir;
     @Value("${forbruk.env}")
@@ -68,17 +70,20 @@ public class SftpFileTransfer {
     NetsRecordRepository netsRecordRepository;
 
     private AvroConverter avroConverter;
-
     private GoogleCloudStorage googleCloudStorage;
+    private String storageLocation;
 
     private static ChannelSftp channelSftp;
     private Session jschSession;
+
 
     public void getAndHandleNetsFiles() {
         try {
             setupJsch();
             avroConverter = new AvroConverter("netsTransaction.avsc");
             googleCloudStorage = new GoogleCloudStorage(runenv);
+            storageLocation = "local".equals(runenv) ? fileDir : "gs://"+storageBucket;
+            logger.info("storagebucket: {}", storageBucket);
 
             /* handle files in path */
             fileList(WORKDIR).forEach(this::handleFile);
