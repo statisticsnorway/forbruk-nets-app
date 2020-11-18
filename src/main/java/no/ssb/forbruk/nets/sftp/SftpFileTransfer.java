@@ -1,5 +1,6 @@
 package no.ssb.forbruk.nets.sftp;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -105,7 +106,7 @@ public class SftpFileTransfer {
 
 //            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
 //            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
-            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
+            ByteArrayInputStream fileStream = new ByteArrayInputStream(getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv").readAllBytes());
             List<GenericRecord> records;
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
