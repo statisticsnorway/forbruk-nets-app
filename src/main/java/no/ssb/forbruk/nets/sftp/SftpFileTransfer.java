@@ -69,23 +69,22 @@ public class SftpFileTransfer {
     private Session jschSession;
 
     public void list() {
-//        try {
-//            setupJsch();
+        try {
+            setupJsch();
             avroConverter = new AvroConverter("netsTransaction.avsc");
-            saveFile();
-//            logger.info("workdir: {}", WORKDIR);
-//            saveFileRecord("list files in " + WORKDIR);
-//            listDirectory(WORKDIR);
-////            listFilesInPath(WORKDIR);
-//            fileList(WORKDIR).forEach(this::saveFile);
-//        } catch (IOException e) {
-//            logger.error("IO-feil: {}", e.toString());
-//        } catch (SftpException e) {
-//            logger.error("Sftp-feil: {}", e.toString());
-//        } catch (JSchException e) {
-//            logger.error("jsch-feil: {}", e.toString());
-//        }
-//        disconnectJsch();
+            logger.info("workdir: {}", WORKDIR);
+            saveFileRecord("list files in " + WORKDIR);
+            listDirectory(WORKDIR);
+//            listFilesInPath(WORKDIR);
+            fileList(WORKDIR).forEach(this::saveFile);
+        } catch (IOException e) {
+            logger.error("IO-feil: {}", e.toString());
+        } catch (SftpException e) {
+            logger.error("Sftp-feil: {}", e.toString());
+        } catch (JSchException e) {
+            logger.error("jsch-feil: {}", e.toString());
+        }
+        disconnectJsch();
     }
 
 
@@ -97,31 +96,27 @@ public class SftpFileTransfer {
     }
 
 
-//    private void saveFile(ChannelSftp.LsEntry f) {
-    private void saveFile() {
-//        logger.info("file in path: {}", f.getFilename());
+    private void saveFile(ChannelSftp.LsEntry f) {
+        logger.info("file in path: {}", f.getFilename());
         try {
 //            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
 //            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
-//            InputStream fileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            InputStream fileStream = new ByteArrayInputStream(channelSftp.get(WORKDIR + "/" + f.getFilename()).readAllBytes());
 //            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
-            ByteArrayInputStream fileStream = new ByteArrayInputStream(getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv").readAllBytes());
+//            ByteArrayInputStream fileStream = new ByteArrayInputStream(getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv").readAllBytes());
             List<GenericRecord> records;
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
                 logger.info("Converted to {}", records);
             } catch (Exception e) {
-//                logger.error("Error in reading filestream for {}: {}", f.getFilename(), e.getMessage());
-                logger.error("Error in reading filestream for {}: {}", "testNetsResponse.csv", e.getMessage());
+                logger.error("Error in reading filestream for {}: {}", f.getFilename(), e.getMessage());
                 e.printStackTrace();
             }
 
-//            saveFileRecord(f.getLongname());
-//        } catch (SftpException | IOException e) {
-        } catch (Exception e) {
-//            logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
-            logger.error("Error in saving/reading file {}: {}", "testNetsResponse.csv", e.getMessage());
+            saveFileRecord(f.getLongname());
+        } catch (SftpException | IOException e) {
+            logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
         }
     }
