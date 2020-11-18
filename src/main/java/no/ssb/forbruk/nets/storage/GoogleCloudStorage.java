@@ -47,7 +47,7 @@ public class GoogleCloudStorage {
 
     public GoogleCloudStorage(String env) {
         logger.info("env: {}", env);
-        if (env == "cloud") {
+        if ("cloud".equals(env)) {
             Configuration configuration = new Configuration();
 //        configuration.setServiceAccountCredentials(Path.of("gcs-secret/gcs_sa_dev.json"));
             backend = new GoogleCloudStorageBackend(configuration);
@@ -118,7 +118,7 @@ public class GoogleCloudStorage {
         try {
             List<GenericRecord> got = storageClient.readAvroRecords(uri);
             logger.info("records read from storage {} ({})", uri.toString(), got.size());
-            got.forEach(l -> logger.info("   {}", l.get(3)));
+            got.forEach(l -> logger.info("   saved: {}", l.get(3)));
         } catch (Exception e) {
             logger.error("Error reading saved avrorecords from storage ({}): ", uri.toString(), e.getMessage());
         }
