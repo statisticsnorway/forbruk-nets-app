@@ -122,7 +122,7 @@ public class SftpFileTransfer {
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
                 logger.info("Converted to {}", records);
-                googleCloudStorage.writeRecordsToStorage(records, avroConverter.getSchema(), storageLocation+"records/storage_"+f.getFilename());
+                googleCloudStorage.writeRecordsToStorage(records, avroConverter.getSchema(), storageLocation+"records/");
             } catch (Exception e) {
                 logger.error("Something went wrong converting file to avro or writing records to storage: {} ", e.getMessage());
                 e.printStackTrace();
@@ -132,7 +132,7 @@ public class SftpFileTransfer {
             InputStream storeFileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
             googleCloudStorage.writeInputStreamToStorage(storeFileStream, storageLocation+"file/storage_"+f.getFilename());
 
-            saveFileRecord(f.getLongname());
+            saveFileRecord(f.getFilename());
         } catch (SftpException | IOException e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
@@ -157,13 +157,7 @@ public class SftpFileTransfer {
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
 
-        String tmpPrivateKeyFile = "tmp/" + "nets" + ".pk";
-        logger.info("privateKeyFile: {}", tmpPrivateKeyFile);
-        Files.write(Path.of(tmpPrivateKeyFile),
-                    privatekeyfile.isEmpty() ?
-                    privateKey.getBytes() : Files.readAllBytes(Path.of(privatekeyfile)));
-//        logger.info("privatekey: {}", Files.readString(Path.of(tmpPrivateKeyFile)).substring(0,70));
-//        logger.info("privatekey: {}", StringUtils.substring(Files.readString(Path.of(tmpPrivateKeyFile)),-50));
+        String tmpPrivateKeyFile = createTemporaryPrivateKeyFile();
         jsch.addIdentity(tmpPrivateKeyFile, passphrase);
         jschSession = jsch.getSession(USER, HOST, PORT);
         jschSession.setConfig("StrictHostKeyChecking", "no");
@@ -176,6 +170,17 @@ public class SftpFileTransfer {
         logger.info("Connected?: {}", channelSftp.isConnected());
     }
 
+
+    private String createTemporaryPrivateKeyFile() throws IOException {
+        String tmpPrivateKeyFile = "tmp/" + "nets" + ".pk";
+        logger.info("privateKeyFile: {}", tmpPrivateKeyFile);
+        Files.write(Path.of(tmpPrivateKeyFile),
+                    privatekeyfile.isEmpty() ?
+                    privateKey.getBytes() : Files.readAllBytes(Path.of(privatekeyfile)));
+//        logger.info("privatekey: {}", Files.readString(Path.of(tmpPrivateKeyFile)).substring(0,70));
+//        logger.info("privatekey: {}", StringUtils.substring(Files.readString(Path.of(tmpPrivateKeyFile)),-50));
+        return tmpPrivateKeyFile;
+    }
 
 
     private void disconnectJsch() {

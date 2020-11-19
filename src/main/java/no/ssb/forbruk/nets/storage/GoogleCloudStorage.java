@@ -81,23 +81,34 @@ public class GoogleCloudStorage {
         logger.info("backend-class: {}", backend.getClass().getSimpleName());
         logger.info("storageLocation: {}", storageLocation);
 
-        DatasetUri uri = DatasetUri.of(
-                isLocalBackend() ?
-                        (new File(storageLocation)).toURI().toString() : storageLocation
-                , "nets/test", "1");
-
-        Flowable flowableRecords = Flowable.fromIterable(records);
-        //Write records
-        storageClient.writeDataUnbounded(uri, schema, flowableRecords, 300, TimeUnit.SECONDS, 1000)
-                .subscribe(record -> {},throwable -> {} );
-
-        //Read back records
         try {
-            List<GenericRecord> got = storageClient.readAvroRecords(uri);
-            logger.info("records read from storage {} ({})", uri.toString(), got.size());
-            got.forEach(l -> logger.info("   saved: {}", l.get(3)));
+            DatasetUri uri = DatasetUri.of(
+                    isLocalBackend() ?
+                            (new File(storageLocation)).toURI().toString() : storageLocation
+                    , "nets/test", "1");
+
+            Flowable flowableRecords = Flowable.fromIterable(records);
+            //Write records
+//            storageClient.writeDataUnbounded(uri, schema, flowableRecords, 300, TimeUnit.SECONDS, 1000)
+//                    .subscribe(record -> {
+//                    }, throwable -> {
+//                    });
+            storageClient.writeAllData(uri, schema, flowableRecords).
+                    subscribe(() -> {
+                    }, throwable -> {
+                    });
+            //Read back records
+            try {
+                List<GenericRecord> got = storageClient.readAvroRecords(uri);
+                logger.info("records read from storage {} ({})", uri.toString(), got.size());
+                got.forEach(l -> logger.info("   saved: {}", l.get(3)));
+            } catch (Exception e) {
+                logger.error("Error reading saved avrorecords from storage ({}): ", uri.toString(), e.getMessage());
+                e.printStackTrace();
+            }
         } catch (Exception e) {
-            logger.error("Error reading saved avrorecords from storage ({}): ", uri.toString(), e.getMessage());
+            logger.error("Error creating datasetUri of saving records: {}", e.getMessage());
+            e.printStackTrace();
         }
     }
 
