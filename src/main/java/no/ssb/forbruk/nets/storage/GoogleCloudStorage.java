@@ -106,15 +106,18 @@ public class GoogleCloudStorage {
                         }
                       ]
                     }""");
+            logger.info("create testUri");
             DatasetUri testUri = DatasetUri.of(
                     isLocalBackend() ?
                             (new File(storageLocation)).toURI().toString() : storageLocation
                     , "test", "1");
+            logger.info("create testrecords");
             Flowable<GenericData.Record> testRecords = asFlowable(
                     new GenericRecordBuilder(testSchema).set("address", singletonList("1")).build(),
                     new GenericRecordBuilder(testSchema).set("address", Arrays.asList("2", null, "foo")).build(),
                     new GenericRecordBuilder(testSchema).set("address", singletonList("3")).build()
             );
+            logger.info("write testRecords");
             storageClient.writeDataUnbounded(testUri, testSchema, testRecords, 300, TimeUnit.SECONDS, 1000)
                     .subscribe(record -> {
                     }, throwable -> {
