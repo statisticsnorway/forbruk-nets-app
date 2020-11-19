@@ -122,15 +122,15 @@ public class SftpFileTransfer {
             try {
                 records = avroConverter.convertCsvToAvro(fileStream, ";");
                 logger.info("Converted to {}", records);
-                googleCloudStorage.writeRecordsToStorage(records, avroConverter.getSchema(), storageLocation);
+                googleCloudStorage.writeRecordsToStorage(records, avroConverter.getSchema(), storageLocation+"records/storage_"+f.getFilename());
             } catch (Exception e) {
                 logger.error("Something went wrong converting file to avro or writing records to storage: {} ", e.getMessage());
                 e.printStackTrace();
             }
 
-            /** Test 3: Create inputstream from avrorecords and use googleCloudStorage to save it in starage **/
+            /** Test 3: Create inputstream from avrorecords and use googleCloudStorage to save it in storage **/
             InputStream storeFileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
-            googleCloudStorage.writeInputStreamToStorage(storeFileStream, storageLocation+"storage_"+f.getFilename());
+            googleCloudStorage.writeInputStreamToStorage(storeFileStream, storageLocation+"file/storage_"+f.getFilename());
 
             saveFileRecord(f.getLongname());
         } catch (SftpException | IOException e) {
