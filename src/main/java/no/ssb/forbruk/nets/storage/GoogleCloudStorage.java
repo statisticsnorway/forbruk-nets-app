@@ -79,10 +79,12 @@ public class GoogleCloudStorage {
                 .withBinaryBackend(backend)
                 .build();
         logger.info("backend-class: {}", backend.getClass().getSimpleName());
+        logger.info("storageLocation: {}", storageLocation);
+
         DatasetUri uri = DatasetUri.of(
                 isLocalBackend() ?
                         (new File(storageLocation)).toURI().toString() : storageLocation
-                , "just_a_path", "897");
+                , "nets/test", "1");
 
         Flowable flowableRecords = Flowable.fromIterable(records);
         //Write records
