@@ -14,7 +14,9 @@ import no.ssb.rawdata.api.storage.RawdataClient;
 import no.ssb.rawdata.api.storage.RawdataClientInitializer;
 import no.ssb.service.provider.api.ProviderConfigurator;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericRecordBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,9 +27,13 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Collections.singletonList;
 
 public class GoogleCloudStorage {
     private static final Logger logger = LoggerFactory.getLogger(GoogleCloudStorage.class);
@@ -61,15 +67,15 @@ public class GoogleCloudStorage {
     /** Er det mulig å bruke dapla-storage-client? Eller er det kun mot dapla-rawdata? **/
     private void writeInputStreamToBucket(InputStream inputStream, String bucket) throws IOException {
         ((GoogleCloudStorageBackend)backend).write(bucket, inputStream);
-        logger.info("stored to bucket {}", bucket);
+        logger.info("stored inputstream to bucket {}", bucket);
         SeekableByteChannel read = backend.read(bucket);
-        logger.info("read: {}", read.toString());
+        logger.info("read from bucket: {}", read.toString());
     }
 
     private void writeInputStreamToLocal(InputStream inputStream, String storageLocation) throws IOException {
-        logger.info("write to file {}", (new File(storageLocation)).toURI().toString());
+        logger.info("write inputstream to file {}", (new File(storageLocation)).toURI().toString());
         backend.write((new File(storageLocation)).toURI().toString(), inputStream.readAllBytes());
-        logger.info("written to {}: ", storageLocation);
+        logger.info("written to file  {}: ", storageLocation);
 //        Files.readAllLines(Paths.get(storageLocation)).forEach(l -> logger.info("  {}", l));
     }
 
@@ -82,32 +88,86 @@ public class GoogleCloudStorage {
         logger.info("storageLocation: {}", storageLocation);
 
         try {
+            Schema testSchema = new Schema.Parser().parse("""
+                    {
+                      "type": "record",
+                      "name": "person",
+                      "fields": [
+                        {
+                          "name": "address",
+                          "type": [
+                            "null",
+                            {
+                              "type": "array",
+                              "items": "string"
+                            }
+                          ],
+                          "default": null
+                        }
+                      ]
+                    }""");
+            DatasetUri testUri = DatasetUri.of(
+                    isLocalBackend() ?
+                            (new File(storageLocation)).toURI().toString() : storageLocation
+                    , "test", "1");
+            Flowable<GenericData.Record> testRecords = asFlowable(
+                    new GenericRecordBuilder(testSchema).set("address", singletonList("1")).build(),
+                    new GenericRecordBuilder(testSchema).set("address", Arrays.asList("2", null, "foo")).build(),
+                    new GenericRecordBuilder(testSchema).set("address", singletonList("3")).build()
+            );
+            storageClient.writeDataUnbounded(testUri, testSchema, testRecords, 300, TimeUnit.SECONDS, 1000)
+                    .subscribe(record -> {
+                    }, throwable -> {
+                    });
+            logger.info("read test records");
+            try {
+                List<GenericRecord> got = storageClient.readAvroRecords(testUri);
+                got.forEach(r -> logger.info("  r: {}", r.toString()));
+            } catch (Exception e) {
+                logger.error("feil lesing av records: {}", e.getMessage());
+            }
+            logger.info("ferdig test records");
+        } catch (Exception e) {
+            logger.error("feil i test: {}", e.getMessage());
+        }
+
+
+
+
+        try {
             DatasetUri uri = DatasetUri.of(
                     isLocalBackend() ?
                             (new File(storageLocation)).toURI().toString() : storageLocation
                     , "nets/test", "1");
 
-            Flowable flowableRecords = Flowable.fromIterable(records);
-            //Write records
-//            storageClient.writeDataUnbounded(uri, schema, flowableRecords, 300, TimeUnit.SECONDS, 1000)
-//                    .subscribe(record -> {
-//                    }, throwable -> {
-//                    });
-            storageClient.writeAllData(uri, schema, flowableRecords).
-                    subscribe(() -> {
+            Flowable<GenericRecord> flowableRecords = Flowable.fromIterable(records);
+//            Write records
+            logger.info("write flowable records to {}", uri.toString());
+            storageClient.writeDataUnbounded(uri, schema, flowableRecords, 300, TimeUnit.SECONDS, 10)
+                    .subscribe(record -> {
                     }, throwable -> {
                     });
-            //Read back records
-            try {
-                List<GenericRecord> got = storageClient.readAvroRecords(uri);
-                logger.info("records read from storage {} ({})", uri.toString(), got.size());
-                got.forEach(l -> logger.info("   saved: {}", l.get(3)));
-            } catch (Exception e) {
-                logger.error("Error reading saved avrorecords from storage ({}): ", uri.toString(), e.getMessage());
-                e.printStackTrace();
-            }
+
+
+//            Completable completable = storageClient.writeAllData(uri, schema, flowableRecords);
+//            completable.doOnComplete(() -> {
+//                logger.info("records written");
+                readFromDatasetUri(storageClient, uri);
+//            }).doOnError((throwable) ->
+//                logger.error("something went wrong in writing records: {}", throwable.getMessage()));
         } catch (Exception e) {
             logger.error("Error creating datasetUri of saving records: {}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void readFromDatasetUri(DatasetStorage storageClient, DatasetUri uri) {
+        try {
+            List<GenericRecord> got = storageClient.readAvroRecords(uri);
+            logger.info("records read from storage {} ({})", uri.toString(), got.size());
+            got.forEach(l -> logger.info("   saved: {}", l.get(3)));
+        } catch (Exception e) {
+            logger.error("Error reading saved avrorecords from storage ({}): ", uri.toString(), e.getMessage());
             e.printStackTrace();
         }
     }
@@ -146,5 +206,22 @@ public class GoogleCloudStorage {
         rawdataClient.write("ns", "1", "file-1.txt", rawdata);
     }
 
+
+    // TODO: remove this
+    private static Flowable<GenericData.Record> asFlowable(GenericData.Record... records) {
+        AtomicInteger counter = new AtomicInteger(0);
+        return Flowable.generate(emitter -> {
+            if (counter.get() < records.length) {
+                emitter.onNext(records[counter.getAndIncrement()]);
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException ie) {
+                    Thread.interrupted();
+                }
+            } else {
+                emitter.onComplete();
+            }
+        });
+    }
 
 }
