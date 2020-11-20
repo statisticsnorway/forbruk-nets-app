@@ -36,14 +36,14 @@ public class GoogleCloudStorage {
                 "avro-file.max.seconds", "3600",
                 "avro-file.max.bytes", "10485760",
                 "avro-file.sync.interval", "524288",
-//                "gcs.bucket-name", bucketName,
-//                "gcs.listing.min-interval-seconds", "3"
+                "gcs.bucket-name", bucketName,
+                "gcs.listing.min-interval-seconds", "3"
 //                ,"gcs.service-account.key-file", keyFile
-                "listing.min-interval-seconds", "0",
-                "filesystem.storage-folder", "tmp/rawdata/storage"
+//                "listing.min-interval-seconds", "0",
+//                "filesystem.storage-folder", "tmp/rawdata/storage"
                 );
         rawdataClient = ProviderConfigurator.configure(configuration,
-                "filesystem", RawdataClientInitializer.class);
+                "gcs", RawdataClientInitializer.class);
         this.rawdataStream = rawdataStream;
     }
 
