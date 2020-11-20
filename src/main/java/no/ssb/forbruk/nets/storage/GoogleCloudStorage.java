@@ -37,8 +37,8 @@ public class GoogleCloudStorage {
                 "avro-file.max.bytes", "10485760",
                 "avro-file.sync.interval", "524288",
                 "gcs.bucket-name", bucketName,
-                "gcs.listing.min-interval-seconds", "3"
-//                ,"gcs.service-account.key-file", keyFile
+                "gcs.listing.min-interval-seconds", "3",
+                "gcs.service-account.key-file", keyFile
 //                "listing.min-interval-seconds", "0",
 //                "filesystem.storage-folder", "tmp/rawdata/storage"
                 );
