@@ -197,18 +197,18 @@
 			<version>0.4</version>
 			<scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>no.ssb.spi</groupId>
-			<artifactId>service-provider-api</artifactId>
-			<version>0.1</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>no.ssb.rawdata</groupId>
-			<artifactId>rawdata-client-api</artifactId>
-			<version>0.10</version>
-			<scope>compile</scope>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>no.ssb.spi</groupId>-->
+<!--			<artifactId>service-provider-api</artifactId>-->
+<!--			<version>0.1</version>-->
+<!--			<scope>compile</scope>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>no.ssb.rawdata</groupId>-->
+<!--			<artifactId>rawdata-client-api</artifactId>-->
+<!--			<version>0.10</version>-->
+<!--			<scope>compile</scope>-->
+<!--		</dependency>-->
 		<dependency>
 			<groupId>com.google.cloud</groupId>
 			<artifactId>google-cloud-storage</artifactId>
@@ -220,6 +220,12 @@
 			<groupId>no.ssb.avro.convert.csv</groupId>
 			<artifactId>avro-buddy-csv</artifactId>
 			<version>0.0.4</version>
+		</dependency>
+
+		<dependency>
+			<groupId>no.ssb.rawdata</groupId>
+			<artifactId>rawdata-client-provider-gcs</artifactId>
+			<version>0.10-SNAPSHOT</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.json/json -->

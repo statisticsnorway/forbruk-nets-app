@@ -81,8 +81,8 @@ public class SftpFileTransfer {
         try {
             setupJsch();
             avroConverter = new AvroConverter("netsTransaction.avsc");
-            googleCloudStorage = new GoogleCloudStorage(runenv);
             storageLocation = "local".equals(runenv) ? fileDir : "gs://" + storageBucket + "/";
+            googleCloudStorage = new GoogleCloudStorage("tmp/rawdata/nets", storageLocation, "secret/my_gcs_sa.json", "test-rawdata-stream");
             logger.info("storagebucket: {}", storageBucket);
 
             /* handle files in path */
@@ -110,30 +110,32 @@ public class SftpFileTransfer {
         logger.info("file in path: {}", f.getFilename());
         try {
             /** Test 1: Get netsfile and save it to filedir immediately */
-//            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
+            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
+            googleCloudStorage.storeToBucket(fileDir + f.getFilename());
 //            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
 
-            /** Test 2: Get netsfile as inputstream, convert it to avroRecords and save these */
-            ByteArrayInputStream fileStream = new ByteArrayInputStream(channelSftp.get(WORKDIR + "/" + f.getFilename()).readAllBytes());
-//            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
-//            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
-//            ByteArrayInputStream fileStream = new ByteArrayInputStream(getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv").readAllBytes());
-            List<GenericRecord> records = new ArrayList<>();
-            try {
-                records = avroConverter.convertCsvToAvro(fileStream, ";");
-                logger.info("Converted to {}", records);
-                googleCloudStorage.writeRecordsToStorage(records, avroConverter.getSchema(), storageLocation+"records/");
-            } catch (Exception e) {
-                logger.error("Something went wrong converting file to avro or writing records to storage: {} ", e.getMessage());
-                e.printStackTrace();
-            }
-
-            /** Test 3: Create inputstream from avrorecords and use googleCloudStorage to save it in storage **/
-            InputStream storeFileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
-            googleCloudStorage.writeInputStreamToStorage(storeFileStream, storageLocation+"file/storage_"+f.getFilename());
+//            /** Test 2: Get netsfile as inputstream, convert it to avroRecords and save these */
+//            ByteArrayInputStream fileStream = new ByteArrayInputStream(channelSftp.get(WORKDIR + "/" + f.getFilename()).readAllBytes());
+////            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
+////            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
+////            ByteArrayInputStream fileStream = new ByteArrayInputStream(getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv").readAllBytes());
+//            List<GenericRecord> records = new ArrayList<>();
+//            try {
+//                records = avroConverter.convertCsvToAvro(fileStream, ";");
+//                logger.info("Converted to {}", records);
+//                googleCloudStorage.storeToBucket("test");
+//            } catch (Exception e) {
+//                logger.error("Something went wrong converting file to avro or writing records to storage: {} ", e.getMessage());
+//                e.printStackTrace();
+//            }
+//
+//            /** Test 3: Create inputstream from avrorecords and use googleCloudStorage to save it in storage **/
+//            InputStream storeFileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+//            googleCloudStorage.writeInputStreamToStorage(storeFileStream, storageLocation+"file/storage_"+f.getFilename());
 
             saveFileRecord(f.getFilename());
-        } catch (SftpException | IOException e) {
+        } catch (SftpException e) {
+//        } catch (SftpException | IOException e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
         }
