@@ -225,6 +225,12 @@
 		<dependency>
 			<groupId>no.ssb.rawdata</groupId>
 			<artifactId>rawdata-client-provider-gcs</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.checkerframework</groupId>
+					<artifactId>checker-compat-qual</artifactId>
+				</exclusion>
+			</exclusions>
 			<version>0.10-SNAPSHOT</version>
 		</dependency>
 
