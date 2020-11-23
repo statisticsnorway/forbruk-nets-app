@@ -11,7 +11,8 @@ google:
   storage:
     provider:
       bucket: nets-rawdata-staging-transactions
-
+    secret:
+      key:
 #data-access:
 #  provider: no.ssb.dapla.data.access.service.GoogleDataAccessService
 

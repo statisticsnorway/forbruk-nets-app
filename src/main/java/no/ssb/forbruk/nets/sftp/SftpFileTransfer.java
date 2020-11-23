@@ -61,6 +61,8 @@ public class SftpFileTransfer {
 
     @Value("${google.storage.provider.bucket}")
     private String storageBucket;
+    @Value("${google.storage.secret.key}")
+    private String storageSecretFile;
     @Value("${forbruk.nets.filedir}")
     private String fileDir;
     @Value("${forbruk.env}")
@@ -82,7 +84,7 @@ public class SftpFileTransfer {
             setupJsch();
             avroConverter = new AvroConverter("netsTransaction.avsc");
             storageLocation = "local".equals(runenv) ? fileDir : "gs://" + storageBucket + "/";
-            googleCloudStorage = new GoogleCloudStorage("tmp/rawdata/nets", storageLocation, privatekeyfile, "test-rawdata-stream");
+            googleCloudStorage = new GoogleCloudStorage("tmp/rawdata/nets", storageLocation, storageSecretFile, "test-rawdata-stream");
             logger.info("storagebucket: {}", storageBucket);
 
             /* handle files in path */
