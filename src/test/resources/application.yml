@@ -1,6 +1,20 @@
 server:
   port: 8079
 
+storage:
+  provider: filesystem
+google:
+  storage:
+    provider:
+      bucket: "tmp/rawdata/nets"
+    secret:
+      keyfile:
+    credential:
+      provider: compute-engine
+    local:
+      temp:
+        folder: "tmp/rawdata/nets/local-temp"
+
 # Configuration used in connection to NETS
 forbruk:
   nets:
