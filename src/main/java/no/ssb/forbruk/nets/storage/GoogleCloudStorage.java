@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,8 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class GoogleCloudStorage {
@@ -84,14 +83,14 @@ public class GoogleCloudStorage {
 
     }
 
-    public void produceMessages(String filePath) {
+    public void produceMessages(String filePath) throws Exception {
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
-            AtomicInteger i = new AtomicInteger(0);
-            List<String> positions = new ArrayList<>();
 
-            AtomicBoolean skipHeader = new AtomicBoolean();
-            Files.readAllLines(Path.of(filePath), StandardCharsets.UTF_8).forEach(line -> {
-                if (!skipHeader.getAndSet(true)) {
+            try {
+                List<String> positions = new ArrayList<>();
+                List<String> lines = Files.readAllLines(Path.of(filePath), StandardCharsets.UTF_8);
+                lines.remove(0);
+                lines.forEach(line -> {
 //                logger.info("fillinje: {}", line);
 //                logger.info("kryptert: {}", new String(encryption.tryEncryptContent(line.getBytes())));
 
@@ -104,21 +103,27 @@ public class GoogleCloudStorage {
 
                     RawdataMessage.Builder messageBuilder = producer.builder();
                     messageBuilder.position(position);
-                    messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
-                    messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
+//                    messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
+//                    messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
+                    messageBuilder.put("manifest.json", manifestJson);
+                    messageBuilder.put("entry", line.getBytes());
                     producer.buffer(messageBuilder);
 
                     positions.add(position);
-                }
+                });
+                logger.info("positions: {}", positions);
+                String[] publishPositions = positions.toArray(new String[positions.size()]);
 
+//                logger.info("Publish positions: {}", publishPositions);
+//                for (String k: publishPositions) {
+//                    logger.info("pos: {}", k);
+//                }
+                producer.publish(publishPositions);
 
-            });
-            logger.info("positions: {}", positions);
-            String[] publishPositions = positions.toArray(new String[positions.size()]);
-
-            logger.info("Publish positions: {}", publishPositions);
-            producer.publish(publishPositions);
-
+            } catch (IOException io) {
+                logger.error("Error reading file {}: {}", filePath, io.getMessage());
+                io.printStackTrace();
+            }
         } catch (Exception e) {
             logger.error("Error creating rawdataproducer for {}: {}", filePath, e.getMessage());
             e.printStackTrace();
@@ -151,7 +156,10 @@ public class GoogleCloudStorage {
                 StringBuilder contentBuilder = new StringBuilder();
                 contentBuilder.append("\nposition: ").append(message.position());
                 for (String key : message.keys()) {
-                    contentBuilder.append("\n\t").append(key).append(" => ").append(new String(encryption.tryDecryptContent(message.get(key))));
+                    contentBuilder
+                            .append("\n\t").append(key).append(" => ")
+                            .append(new String(message.get(key)));
+//                            .append(new String(encryption.tryDecryptContent(message.get(key))));
                 }
                 logger.info("consumed message {}", contentBuilder.toString());
             }

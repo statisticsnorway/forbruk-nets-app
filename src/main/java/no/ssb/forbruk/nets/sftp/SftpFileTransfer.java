@@ -105,6 +105,9 @@ public class SftpFileTransfer {
         } catch (SftpException e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
+        } catch (Exception e) {
+            logger.error("Error producing messages for {}: {}", f.getFilename(), e.getMessage());
+            e.printStackTrace();
         }
     }
 
