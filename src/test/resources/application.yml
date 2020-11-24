@@ -26,7 +26,8 @@ forbruk:
     workdir: "./Outbound"
     privatekeyfile:
     filedir: "tmp/"
-  env: local
+    header: "TRANSAKSJONSDATO;TRANSAKSJONSTID;BRUKERSTED;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT;BR_STED_NAVN_TERM;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN"
+
 
 # Scheduler
 scheduled:
