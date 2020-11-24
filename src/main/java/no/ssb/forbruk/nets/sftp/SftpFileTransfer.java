@@ -1,13 +1,5 @@
 package no.ssb.forbruk.nets.sftp;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Vector;
-
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
@@ -21,6 +13,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Vector;
 
 
 @Service
@@ -116,7 +117,7 @@ public class SftpFileTransfer {
     }
 
     private void printDb() {
-        List<NetsRecord>  dbrecs = netsRecordRepository.findAll();
+        List<NetsRecord> dbrecs = netsRecordRepository.findAll();
         dbrecs.forEach(d -> logger.info(d.toString()));
     }
 
