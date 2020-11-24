@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Vector;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -49,8 +48,6 @@ public class SftpFileTransfer {
     private String passphrase;
     @Value("#{environment.NETS_SECRET_STAGING}")
     private String privateKey;
-
-
 
     @Value("${forbruk.nets.filedir}")
     private String fileDir;
@@ -98,7 +95,7 @@ public class SftpFileTransfer {
         logger.info("file in path: {}", f.getFilename());
         try {
             channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
-            googleCloudStorage.storeToBucket(fileDir + f.getFilename());
+            googleCloudStorage.produceMessages(fileDir + f.getFilename());
 
             saveFileRecord(f.getFilename());
             logger.info("read from bucket");
@@ -144,12 +141,9 @@ public class SftpFileTransfer {
 
     private String createTemporaryPrivateKeyFile() throws IOException {
         String tmpPrivateKeyFile = "tmp/" + "nets" + ".pk";
-        logger.info("privateKeyFile: {}", tmpPrivateKeyFile);
         Files.write(Path.of(tmpPrivateKeyFile),
                     privatekeyfile.isEmpty() ?
                     privateKey.getBytes() : Files.readAllBytes(Path.of(privatekeyfile)));
-//        logger.info("privatekey: {}", Files.readString(Path.of(tmpPrivateKeyFile)).substring(0,70));
-//        logger.info("privatekey: {}", StringUtils.substring(Files.readString(Path.of(tmpPrivateKeyFile)),-50));
         return tmpPrivateKeyFile;
     }
 
@@ -166,46 +160,5 @@ public class SftpFileTransfer {
     public boolean secretsOk() {
         return passphrase != null && !passphrase.isEmpty() && privateKey != null && !privateKey.isEmpty();
     }
-
-
-
-    /***********************/
-    /** Just for testing ***/
-    /***********************/
-    public void list () {
-        try {
-            setupJsch();
-            listFilesInPath(WORKDIR);
-            listDirectory(WORKDIR);
-        } catch (IOException e) {
-            logger.error("IO-feil: {}", e.toString());
-        } catch (SftpException e) {
-            logger.error("Sftp-feil: {}", e.toString());
-        } catch (JSchException e) {
-            logger.error("jsch-feil: {}", e.toString());
-        }
-    }
-
-    void listFilesInPath(String path) throws SftpException {
-        fileList(path).forEach(f -> logger.info("file in {}: {}", path, f.getFilename()));
-    }
-
-    static void listDirectory(String path) throws SftpException {
-        Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
-//        logger.info("List files in {}", path);
-        for (ChannelSftp.LsEntry entry : files) {
-//            logger.info("entry: {}", entry.toString());
-            if (!entry.getAttrs().isDir()) {
-//                logger.info("path: {}", path);
-                logger.info("file: {}/{}" , path, entry.getFilename());
-            } else {
-                if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) {
-                    listDirectory(path + "/" + entry.getFilename());
-                }
-            }
-        }
-    }
-
-
 
 }

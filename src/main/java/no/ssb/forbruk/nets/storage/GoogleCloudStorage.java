@@ -1,6 +1,9 @@
 package no.ssb.forbruk.nets.storage;
 
 
+import no.ssb.forbruk.nets.storage.utils.Encryption;
+import no.ssb.forbruk.nets.storage.utils.Manifest;
+import no.ssb.forbruk.nets.storage.utils.ULIDGenerator;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
 import no.ssb.rawdata.api.RawdataConsumer;
@@ -20,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -80,45 +84,34 @@ public class GoogleCloudStorage {
 
     }
 
-    public void storeToBucket(String storage) {
-        try {
-            produceMessages(storage);
-        } catch (InterruptedException e) {
-            logger.error("InterruptedException in storeToBucket: {}", e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            logger.error("Exception in storeToBucket: {}", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    void produceMessages(String filePath) throws Exception {
+    public void produceMessages(String filePath) {
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             AtomicInteger i = new AtomicInteger(0);
             List<String> positions = new ArrayList<>();
 
+            AtomicBoolean skipHeader = new AtomicBoolean();
             Files.readAllLines(Path.of(filePath), StandardCharsets.UTF_8).forEach(line -> {
-                if (i.intValue() > 0) {
+                if (!skipHeader.getAndSet(true)) {
 //                logger.info("fillinje: {}", line);
 //                logger.info("kryptert: {}", new String(encryption.tryEncryptContent(line.getBytes())));
 
-                    String pos = String.valueOf(i.getAndAdd(1));
+                    String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
 
                     byte[] manifestJson = Manifest.generateManifest(
-                            producer.topic(), pos, line.length(), headerColumns);
+                            producer.topic(), position, line.length(), headerColumns, filePath);
                     logger.info("manifest: {}", new String(manifestJson));
 
 
                     RawdataMessage.Builder messageBuilder = producer.builder();
-                    messageBuilder.position(pos);
+                    messageBuilder.position(position);
                     messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
                     messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
                     producer.buffer(messageBuilder);
 
-                    positions.add(pos);
-                } else {
-                    i.getAndIncrement();
+                    positions.add(position);
                 }
+
+
             });
             logger.info("positions: {}", positions);
             String[] publishPositions = positions.toArray(new String[positions.size()]);
@@ -126,8 +119,6 @@ public class GoogleCloudStorage {
             logger.info("Publish positions: {}", publishPositions);
             producer.publish(publishPositions);
 
-            producer.publishBuilders(producer.builder().position(String.valueOf(i.getAndAdd(1)))
-                    .put("metadata", ("created-time " + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             logger.error("Error creating rawdataproducer for {}: {}", filePath, e.getMessage());
             e.printStackTrace();
@@ -153,15 +144,16 @@ public class GoogleCloudStorage {
     void consumeMessages() {
         try (RawdataConsumer consumer = rawdataClient.consumer(rawdataTopic)) {
             logger.info("consumer: {}", consumer.topic());
-            for (; ; ) {
-                RawdataMessage message = consumer.receive(30, TimeUnit.SECONDS);
+            RawdataMessage message;
+            while ((message = consumer.receive(1, TimeUnit.SECONDS)) != null) {
                 logger.info("message position: {}", message.position());
-                if (message != null) {
-                    logger.info("Consumed message with id: {}", message.ulid());
-                    if (message.position().equals("10")) {
-                        return;
-                    }
+                // print message
+                StringBuilder contentBuilder = new StringBuilder();
+                contentBuilder.append("\nposition: ").append(message.position());
+                for (String key : message.keys()) {
+                    contentBuilder.append("\n\t").append(key).append(" => ").append(new String(encryption.tryDecryptContent(message.get(key))));
                 }
+                logger.info("consumed message {}", contentBuilder.toString());
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

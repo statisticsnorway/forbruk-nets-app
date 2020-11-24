@@ -1,11 +1,12 @@
-package no.ssb.forbruk.nets.storage;
+package no.ssb.forbruk.nets.storage.utils;
 
 import java.nio.charset.StandardCharsets;
 
 public class Manifest {
     static MetadataContent.Builder metadataContentBuilder = new MetadataContent.Builder();
 
-    static byte[] generateManifest (String topic, String position, int contentLength, String[] headerColumns) {
+    public static byte[] generateManifest(String topic, String position, int contentLength,
+                                          String[] headerColumns, String filename ) {
 
         metadataContentBuilder.topic(topic)
                 .position(position)
@@ -23,7 +24,7 @@ public class Manifest {
         // store csv/avro mapping
         metadataContentBuilder
                 .sourcePath("mem://test-block")
-                .sourceFile("CSV_DATA")
+                .sourceFile(filename)
                 .sourceCharset(StandardCharsets.UTF_8.name())
                 .delimiter(";")
                 .recordType(MetadataContent.RecordType.ENTRY);
