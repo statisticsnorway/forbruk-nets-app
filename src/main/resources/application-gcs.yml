@@ -1,0 +1,42 @@
+server:
+  port: 8078
+
+# Configuration used in connection to NETS
+forbruk:
+  nets:
+    privatekeyfile: "C:\\var\\appdata\\forbruk\\nets\\secrets\\nets_test_rsa"
+
+storage:
+  provider: gcs
+google:
+  storage:
+#    provider:
+#      bucket: tmp/rawdata/nets
+    secret:
+      keyfile: "C://var//appdata//forbruk//ssb-team-forbruk-staging-d569602b5f9f.json"
+    credential:
+      provider: service-account
+    local:
+      temp:
+        folder: "tmp/rawdata/nets/local-temp"
+
+# Scheduler
+scheduled:
+  cron:
+    listfiles: "0 0/2 6-16 * * ?"
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        trace: false
+        web-allow-others: false

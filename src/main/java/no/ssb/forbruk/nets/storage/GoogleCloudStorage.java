@@ -7,17 +7,17 @@ import no.ssb.rawdata.api.RawdataConsumer;
 import no.ssb.rawdata.api.RawdataMessage;
 import no.ssb.rawdata.api.RawdataProducer;
 import no.ssb.service.provider.api.ProviderConfigurator;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.commons.compress.utils.Charsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,29 +26,40 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class GoogleCloudStorage {
     private static final Logger logger = LoggerFactory.getLogger(GoogleCloudStorage.class);
 
-    @Value("#{environment.forbruk_nets_encryption_key}")
-    private String encryptionKey;
-    @Value("#{environment.forbruk_nets_encryption_salt}")
-    private String encryptionSalt;
-
+    @Value("${storage.provider}")
+    String storageProvider;
     @Value("${google.storage.provider.bucket}")
-    private String storageBucket;
+    String storageBucket;
     @Value("${google.storage.secret.keyfile}")
-    private String storageSecretFile;
+    String storageSecretFile;
     @Value("${google.storage.credential.provider}")
-    private String credentialProvider;
+    String credentialProvider;
     @Value("${google.storage.local.temp.folder}")
-    private String localTemFolder;
+    String localTemFolder;
+    @Value("${google.storage.provider.topic}")
+    String rawdataTopic;
+
+    @Autowired
+    Encryption encryption;
 
     Map<String, String> configuration;
     static RawdataClient rawdataClient;
-    static String rawdataStream;
+    static String [] headerColumns;
 
-    public void initialize(String runEnvironment, String rawdataStream) {
-        String storageLocation = "local".equals(runEnvironment) ? storageBucket : "gs://" + storageBucket + "/";
+    public void initialize(String headerLine) {
+//        logger.info("storageProvider: {}", storageProvider);
+//        logger.info("storageBucket: {}", storageBucket);
+//        logger.info("localTemFolder: {}", localTemFolder);
+//        logger.info("credentialProvider: {}", credentialProvider);
+//        logger.info("storageSecretFile: {}", storageSecretFile);
+//        logger.info("rawdataTopic: {}", rawdataTopic);
+
+        String storageLocation = "filesystem".equals(storageProvider) ? storageBucket : "gs://" + storageBucket + "/";
+        logger.info("storageLocation: {}", storageLocation);
+
         this.configuration = Map.of(
                 "local-temp-folder", localTemFolder,
-                "avro-file.max.seconds", "30",
+                "avro-file.max.seconds", "10",
                 "avro-file.max.bytes", "10485760",
                 "avro-file.sync.interval", "524288",
                 "gcs.bucket-name", storageLocation,
@@ -56,25 +67,22 @@ public class GoogleCloudStorage {
                 "gcs.credential-provider", credentialProvider,
                 "gcs.service-account.key-file", storageSecretFile
 //                "listing.min-interval-seconds", "0",
-//                "filesystem.storage-folder", "tmp/rawdata/storage"
+//                "filesystem.storage-folder", storageLocation
                 );
+        logger.info("konfig: {}", this.configuration);
         rawdataClient = ProviderConfigurator.configure(configuration,
-                "gcs", RawdataClientInitializer.class);
-        this.rawdataStream = rawdataStream;
-        logger.info("storagebucket: {}", storageBucket);
+                storageProvider, RawdataClientInitializer.class);
+        logger.info("rawdataClient: {}", rawdataClient.toString());
 
-        logger.info("Config: {}", this.configuration);
+//        encryption = new Encryption();
+        encryption.initialize();
+        headerColumns = headerLine.split(";");
 
     }
 
     public void storeToBucket(String storage) {
         try {
-            Thread consumerThread = new Thread(() -> consumeMessages());
-            consumerThread.start();
-
             produceMessages(storage);
-
-            consumerThread.join();
         } catch (InterruptedException e) {
             logger.error("InterruptedException in storeToBucket: {}", e.getMessage());
             e.printStackTrace();
@@ -84,9 +92,66 @@ public class GoogleCloudStorage {
         }
     }
 
+    void produceMessages(String filePath) throws Exception {
+        try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
+            AtomicInteger i = new AtomicInteger(0);
+            List<String> positions = new ArrayList<>();
 
-    static void consumeMessages() {
-        try (RawdataConsumer consumer = rawdataClient.consumer(rawdataStream)) {
+            Files.readAllLines(Path.of(filePath), StandardCharsets.UTF_8).forEach(line -> {
+                if (i.intValue() > 0) {
+//                logger.info("fillinje: {}", line);
+//                logger.info("kryptert: {}", new String(encryption.tryEncryptContent(line.getBytes())));
+
+                    String pos = String.valueOf(i.getAndAdd(1));
+
+                    byte[] manifestJson = Manifest.generateManifest(
+                            producer.topic(), pos, line.length(), headerColumns);
+                    logger.info("manifest: {}", new String(manifestJson));
+
+
+                    RawdataMessage.Builder messageBuilder = producer.builder();
+                    messageBuilder.position(pos);
+                    messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
+                    messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
+                    producer.buffer(messageBuilder);
+
+                    positions.add(pos);
+                } else {
+                    i.getAndIncrement();
+                }
+            });
+            logger.info("positions: {}", positions);
+            String[] publishPositions = positions.toArray(new String[positions.size()]);
+
+            logger.info("Publish positions: {}", publishPositions);
+            producer.publish(publishPositions);
+
+            producer.publishBuilders(producer.builder().position(String.valueOf(i.getAndAdd(1)))
+                    .put("metadata", ("created-time " + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            logger.error("Error creating rawdataproducer for {}: {}", filePath, e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    public void readFromBucket() {
+        try {
+            Thread consumerThread = new Thread(() -> consumeMessages());
+            consumerThread.start();
+
+            consumerThread.join();
+        } catch (InterruptedException e) {
+            logger.error("InterruptedException in readFromBucket: {}", e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            logger.error("Exception in readFromBucket: {}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    void consumeMessages() {
+        try (RawdataConsumer consumer = rawdataClient.consumer(rawdataTopic)) {
             logger.info("consumer: {}", consumer.topic());
             for (; ; ) {
                 RawdataMessage message = consumer.receive(30, TimeUnit.SECONDS);
@@ -103,20 +168,4 @@ public class GoogleCloudStorage {
         }
     }
 
-    static void produceMessages(String filePath) throws Exception {
-        try (RawdataProducer producer = rawdataClient.producer(rawdataStream)) {
-            AtomicInteger i = new AtomicInteger(0);
-            Files.readAllLines(Path.of(filePath), StandardCharsets.UTF_8).forEach(line -> {
-                logger.info("fillinje: {}", line);
-                producer.publishBuilders(producer.builder().position(String.valueOf(i.getAndAdd(1)))
-                        .put("the-payload", line.getBytes()));
-
-            });
-            producer.publishBuilders(producer.builder().position(String.valueOf(i.getAndAdd(1)))
-                    .put("metadata", ("created-time " + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception e) {
-            logger.error("Error creating rawdataproducer for {}: {}", filePath, e.getMessage());
-            e.printStackTrace();
-        }
-    }
 }

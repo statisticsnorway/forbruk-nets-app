@@ -1,4 +1,4 @@
-package no.ssb.forbruk.nets.model;
+package no.ssb.forbruk.nets.db.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

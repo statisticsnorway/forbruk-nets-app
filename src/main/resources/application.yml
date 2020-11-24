@@ -6,11 +6,12 @@ webserver:
 
 
 storage:
-  provider: gcp
+  provider: gcs
 google:
   storage:
     provider:
       bucket: nets-rawdata-staging-transactions
+      topic: test-transactions
     secret:
       keyfile:
     credential:
@@ -100,7 +101,9 @@ forbruk:
     workdir: "./Outbound"
     privatekeyfile:
     filedir: "tmp/"
-  env: cloud
+    header: "TRANSAKSJONSDATO;TRANSAKSJONSTID;BRUKERSTED;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT;BR_STED_NAVN_TERM;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN"
+
+
 
 # Scheduler
 scheduled:

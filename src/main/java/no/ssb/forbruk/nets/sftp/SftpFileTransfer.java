@@ -1,18 +1,12 @@
 package no.ssb.forbruk.nets.sftp;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Vector;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -20,12 +14,9 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
-import no.ssb.dapla.storage.client.DatasetStorage;
-import no.ssb.forbruk.nets.avro.AvroConverter;
-import no.ssb.forbruk.nets.model.NetsRecord;
-import no.ssb.forbruk.nets.repository.NetsRecordRepository;
+import no.ssb.forbruk.nets.db.model.NetsRecord;
+import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
 import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
-import org.apache.avro.generic.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,16 +54,14 @@ public class SftpFileTransfer {
 
     @Value("${forbruk.nets.filedir}")
     private String fileDir;
-    @Value("${forbruk.env}")
-    private String runenv;
+    @Value("${forbruk.nets.header}")
+    private String headerLine;
 
     @Autowired
     NetsRecordRepository netsRecordRepository;
 
-//    private AvroConverter avroConverter;
     @Autowired
     private GoogleCloudStorage googleCloudStorage;
-    private String storageLocation;
 
     private static ChannelSftp channelSftp;
     private Session jschSession;
@@ -81,9 +70,9 @@ public class SftpFileTransfer {
     public void getAndHandleNetsFiles() {
         try {
             setupJsch();
-//            avroConverter = new AvroConverter("netsTransaction.avsc");
-            googleCloudStorage.initialize( runenv,"test-rawdata-stream");
+            googleCloudStorage.initialize(headerLine);
 
+            logger.info("find files and loop");
             /* handle files in path */
             fileList(WORKDIR).forEach(this::handleFile);
         } catch (IOException e) {
@@ -108,33 +97,14 @@ public class SftpFileTransfer {
     private void handleFile(ChannelSftp.LsEntry f) {
         logger.info("file in path: {}", f.getFilename());
         try {
-            /** Test 1: Get netsfile and save it to filedir immediately */
             channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
             googleCloudStorage.storeToBucket(fileDir + f.getFilename());
-//            Files.readAllLines(Path.of(fileDir + f.getFilename())).forEach(l -> logger.info("fillinje: {}", l));
-
-//            /** Test 2: Get netsfile as inputstream, convert it to avroRecords and save these */
-//            ByteArrayInputStream fileStream = new ByteArrayInputStream(channelSftp.get(WORKDIR + "/" + f.getFilename()).readAllBytes());
-////            InputStream fileStream = new FileInputStream(new File(fileDir + f.getFilename()));
-////            InputStream fileStream = getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv");
-////            ByteArrayInputStream fileStream = new ByteArrayInputStream(getClass().getClassLoader().getResourceAsStream("testNetsResponse.csv").readAllBytes());
-//            List<GenericRecord> records = new ArrayList<>();
-//            try {
-//                records = avroConverter.convertCsvToAvro(fileStream, ";");
-//                logger.info("Converted to {}", records);
-//                googleCloudStorage.storeToBucket("test");
-//            } catch (Exception e) {
-//                logger.error("Something went wrong converting file to avro or writing records to storage: {} ", e.getMessage());
-//                e.printStackTrace();
-//            }
-//
-//            /** Test 3: Create inputstream from avrorecords and use googleCloudStorage to save it in storage **/
-//            InputStream storeFileStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
-//            googleCloudStorage.writeInputStreamToStorage(storeFileStream, storageLocation+"file/storage_"+f.getFilename());
 
             saveFileRecord(f.getFilename());
+            logger.info("read from bucket");
+            googleCloudStorage.readFromBucket();
+            logger.info("finished handled file");
         } catch (SftpException e) {
-//        } catch (SftpException | IOException e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
         }
