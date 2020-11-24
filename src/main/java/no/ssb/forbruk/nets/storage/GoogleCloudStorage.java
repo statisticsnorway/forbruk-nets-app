@@ -57,15 +57,12 @@ public class GoogleCloudStorage {
 //        logger.info("storageSecretFile: {}", storageSecretFile);
 //        logger.info("rawdataTopic: {}", rawdataTopic);
 
-        String storageLocation = "filesystem".equals(storageProvider) ? storageBucket : "gs://" + storageBucket + "/";
-        logger.info("storageLocation: {}", storageLocation);
-
         this.configuration = Map.of(
                 "local-temp-folder", localTemFolder,
                 "avro-file.max.seconds", "10",
                 "avro-file.max.bytes", "10485760",
                 "avro-file.sync.interval", "524288",
-                "gcs.bucket-name", storageLocation,
+                "gcs.bucket-name", storageBucket,
                 "gcs.listing.min-interval-seconds", "3",
                 "gcs.credential-provider", credentialProvider,
                 "gcs.service-account.key-file", storageSecretFile
@@ -83,7 +80,7 @@ public class GoogleCloudStorage {
 
     }
 
-    public void produceMessages(String filePath) throws Exception {
+    public void produceMessages(String filePath) {
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
 
             try {
@@ -103,10 +100,8 @@ public class GoogleCloudStorage {
 
                     RawdataMessage.Builder messageBuilder = producer.builder();
                     messageBuilder.position(position);
-//                    messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
-//                    messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
-                    messageBuilder.put("manifest.json", manifestJson);
-                    messageBuilder.put("entry", line.getBytes());
+                    messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
+                    messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
                     producer.buffer(messageBuilder);
 
                     positions.add(position);
@@ -114,10 +109,6 @@ public class GoogleCloudStorage {
                 logger.info("positions: {}", positions);
                 String[] publishPositions = positions.toArray(new String[positions.size()]);
 
-//                logger.info("Publish positions: {}", publishPositions);
-//                for (String k: publishPositions) {
-//                    logger.info("pos: {}", k);
-//                }
                 producer.publish(publishPositions);
 
             } catch (IOException io) {
@@ -131,22 +122,22 @@ public class GoogleCloudStorage {
     }
 
 
-    public void readFromBucket() {
-        try {
-            Thread consumerThread = new Thread(() -> consumeMessages());
-            consumerThread.start();
+//    public void readFromBucket() {
+//        try {
+//            Thread consumerThread = new Thread(() -> consumeMessages());
+//            consumerThread.start();
+//
+//            consumerThread.join();
+//        } catch (InterruptedException e) {
+//            logger.error("InterruptedException in readFromBucket: {}", e.getMessage());
+//            e.printStackTrace();
+//        } catch (Exception e) {
+//            logger.error("Exception in readFromBucket: {}", e.getMessage());
+//            e.printStackTrace();
+//        }
+//    }
 
-            consumerThread.join();
-        } catch (InterruptedException e) {
-            logger.error("InterruptedException in readFromBucket: {}", e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            logger.error("Exception in readFromBucket: {}", e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    void consumeMessages() {
+    public void consumeMessages() {
         try (RawdataConsumer consumer = rawdataClient.consumer(rawdataTopic)) {
             logger.info("consumer: {}", consumer.topic());
             RawdataMessage message;
@@ -158,12 +149,13 @@ public class GoogleCloudStorage {
                 for (String key : message.keys()) {
                     contentBuilder
                             .append("\n\t").append(key).append(" => ")
-                            .append(new String(message.get(key)));
-//                            .append(new String(encryption.tryDecryptContent(message.get(key))));
+                            .append(new String(encryption.tryDecryptContent(message.get(key))));
                 }
                 logger.info("consumed message {}", contentBuilder.toString());
             }
         } catch (Exception e) {
+            logger.error("Error consuming messages: {}", e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

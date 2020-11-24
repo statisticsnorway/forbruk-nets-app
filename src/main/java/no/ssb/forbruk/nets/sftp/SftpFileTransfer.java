@@ -100,7 +100,7 @@ public class SftpFileTransfer {
 
             saveFileRecord(f.getFilename());
             logger.info("read from bucket");
-            googleCloudStorage.readFromBucket();
+            googleCloudStorage.consumeMessages();
             logger.info("finished handled file");
         } catch (SftpException e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
