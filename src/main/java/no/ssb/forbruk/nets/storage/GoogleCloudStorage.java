@@ -11,6 +11,8 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.compress.utils.Charsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -20,31 +22,49 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
+@Service
 public class GoogleCloudStorage {
     private static final Logger logger = LoggerFactory.getLogger(GoogleCloudStorage.class);
 
+    @Value("#{environment.forbruk_nets_encryption_key}")
+    private String encryptionKey;
+    @Value("#{environment.forbruk_nets_encryption_salt}")
+    private String encryptionSalt;
+
+    @Value("${google.storage.provider.bucket}")
+    private String storageBucket;
+    @Value("${google.storage.secret.keyfile}")
+    private String storageSecretFile;
+    @Value("${google.storage.credential.provider}")
+    private String credentialProvider;
+    @Value("${google.storage.local.temp.folder}")
+    private String localTemFolder;
 
     Map<String, String> configuration;
     static RawdataClient rawdataClient;
     static String rawdataStream;
 
-    public GoogleCloudStorage(String localTemFolder, String bucketName,
-                              String keyFile, String rawdataStream) {
+    public void initialize(String runEnvironment, String rawdataStream) {
+        String storageLocation = "local".equals(runEnvironment) ? storageBucket : "gs://" + storageBucket + "/";
         this.configuration = Map.of(
                 "local-temp-folder", localTemFolder,
-                "avro-file.max.seconds", "3600",
+                "avro-file.max.seconds", "30",
                 "avro-file.max.bytes", "10485760",
                 "avro-file.sync.interval", "524288",
-                "gcs.bucket-name", bucketName,
+                "gcs.bucket-name", storageLocation,
                 "gcs.listing.min-interval-seconds", "3",
-                "gcs.service-account.key-file", keyFile
+                "gcs.credential-provider", credentialProvider,
+                "gcs.service-account.key-file", storageSecretFile
 //                "listing.min-interval-seconds", "0",
 //                "filesystem.storage-folder", "tmp/rawdata/storage"
                 );
         rawdataClient = ProviderConfigurator.configure(configuration,
                 "gcs", RawdataClientInitializer.class);
         this.rawdataStream = rawdataStream;
+        logger.info("storagebucket: {}", storageBucket);
+
+        logger.info("Config: {}", this.configuration);
+
     }
 
     public void storeToBucket(String storage) {

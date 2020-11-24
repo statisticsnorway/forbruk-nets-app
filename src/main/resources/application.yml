@@ -12,7 +12,12 @@ google:
     provider:
       bucket: nets-rawdata-staging-transactions
     secret:
-      key:
+      keyfile:
+    credential:
+      provider: compute-engine
+    local:
+      temp:
+        folder: "tmp/rawdata/nets"
 #data-access:
 #  provider: no.ssb.dapla.data.access.service.GoogleDataAccessService
 
