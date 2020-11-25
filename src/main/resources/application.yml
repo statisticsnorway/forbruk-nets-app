@@ -16,6 +16,9 @@ google:
       keyfile:
     credential:
       provider: compute-engine
+    encryption: true
+    buffer:
+      lines: 1000
     local:
       temp:
         folder: "tmp/rawdata/nets/local-temp"

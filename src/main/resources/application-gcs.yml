@@ -16,6 +16,7 @@ google:
       keyfile: "C://var//appdata//forbruk//ssb-team-forbruk-staging-d569602b5f9f.json"
     credential:
       provider: service-account
+    encryption: true
     local:
       temp:
         folder: "tmp/rawdata/nets/local-temp"

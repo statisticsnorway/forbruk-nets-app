@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -95,8 +96,10 @@ public class SftpFileTransfer {
     private void handleFile(ChannelSftp.LsEntry f) {
         logger.info("file in path: {}", f.getFilename());
         try {
-            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
-            googleCloudStorage.produceMessages(fileDir + f.getFilename());
+//            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
+//            googleCloudStorage.produceMessages(fileDir + f.getFilename());
+            InputStream inputStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
+            googleCloudStorage.produceMessages(inputStream, f.getFilename());
 
             saveFileRecord(f.getFilename());
             logger.info("read from bucket");

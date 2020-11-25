@@ -13,24 +13,29 @@ public class Encryption {
 
     static EncryptionClient encryptionClient;
     static byte[] secretKey;
+    static boolean doEncrypt;
 
     @Value("#{environment.forbruk_nets_encryption_key}")
     private String encryptionKey;
     @Value("#{environment.forbruk_nets_encryption_salt}")
     private String encryptionSalt;
+    @Value("${google.storage.encryption}")
+    private String encrypt;
 
     public void initialize() {
-//        logger.info("encryptionKey: {}", encryptionKey);
-//        logger.info("encryptionSalt: {}", encryptionSalt);
+        logger.info("encryptionKey: {}", encryptionKey);
+        logger.info("encryptionSalt: {}", encryptionSalt);
         encryptionClient = new EncryptionClient();
         secretKey = encryptionClient.generateSecretKey(
                 encryptionKey.toCharArray(),
                 encryptionSalt.getBytes()).getEncoded();
 //        logger.info("secretKey: {}", secretKey);
+        doEncrypt = encrypt != null && Boolean.parseBoolean(encrypt);
+        logger.info("encrypt: {}, doEncrypt: {}", encrypt, doEncrypt);
     }
 
     public byte[] tryEncryptContent(byte[] content) {
-        if (secretKey != null) {
+        if (doEncrypt && secretKey != null) {
             byte[] iv = encryptionClient.generateIV();
             return encryptionClient.encrypt(secretKey, iv, content);
         }
@@ -38,7 +43,7 @@ public class Encryption {
     }
 
     public byte[] tryDecryptContent(byte[] content) {
-        if (secretKey != null && content != null) {
+        if (doEncrypt && secretKey != null && content != null) {
             return encryptionClient.decrypt(secretKey, content);
         }
         return content;

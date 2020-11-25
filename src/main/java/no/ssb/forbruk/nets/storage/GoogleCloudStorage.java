@@ -16,10 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +40,8 @@ public class GoogleCloudStorage {
     String localTemFolder;
     @Value("${google.storage.provider.topic}")
     String rawdataTopic;
+    @Value("${google.storage.buffer.lines}")
+    int maxBufferLines;
 
     @Autowired
     Encryption encryption;
@@ -49,93 +50,75 @@ public class GoogleCloudStorage {
     static RawdataClient rawdataClient;
     static String [] headerColumns;
 
+    final static String avrofileMaxSeconds = "10";
+    final static String avrofileMaxBytes = "10485760";
+    final static String avrofileSyncInterval =  "524288";
+
+
     public void initialize(String headerLine) {
-//        logger.info("storageProvider: {}", storageProvider);
+        logger.info("storageProvider: {}", storageProvider);
 //        logger.info("storageBucket: {}", storageBucket);
 //        logger.info("localTemFolder: {}", localTemFolder);
 //        logger.info("credentialProvider: {}", credentialProvider);
 //        logger.info("storageSecretFile: {}", storageSecretFile);
 //        logger.info("rawdataTopic: {}", rawdataTopic);
 
-        this.configuration = Map.of(
-                "local-temp-folder", localTemFolder,
-                "avro-file.max.seconds", "10",
-                "avro-file.max.bytes", "10485760",
-                "avro-file.sync.interval", "524288",
-                "gcs.bucket-name", storageBucket,
-                "gcs.listing.min-interval-seconds", "3",
-                "gcs.credential-provider", credentialProvider,
-                "gcs.service-account.key-file", storageSecretFile
-//                "listing.min-interval-seconds", "0",
-//                "filesystem.storage-folder", storageLocation
-                );
-        logger.info("konfig: {}", this.configuration);
+        setConfiguration(storageProvider);
+        configuration.forEach((k,v) -> logger.info("config {}:{}", k, v));
         rawdataClient = ProviderConfigurator.configure(configuration,
                 storageProvider, RawdataClientInitializer.class);
         logger.info("rawdataClient: {}", rawdataClient.toString());
 
-//        encryption = new Encryption();
         encryption.initialize();
         headerColumns = headerLine.split(";");
 
     }
 
-    public void produceMessages(String filePath) {
+    public void produceMessages(InputStream inputStream, String filename) {
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            boolean skipHeader = false;
+            List<String> positions = new ArrayList<>();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!skipHeader) {
+                    skipHeader = true;
+                    continue;
+                }
 
-            try {
-                List<String> positions = new ArrayList<>();
-                List<String> lines = Files.readAllLines(Path.of(filePath), StandardCharsets.UTF_8);
-                lines.remove(0);
-                lines.forEach(line -> {
-//                logger.info("fillinje: {}", line);
-//                logger.info("kryptert: {}", new String(encryption.tryEncryptContent(line.getBytes())));
+                String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
 
-                    String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
+                byte[] manifestJson = Manifest.generateManifest(
+                        producer.topic(), position, line.length(), headerColumns, filename);
 
-                    byte[] manifestJson = Manifest.generateManifest(
-                            producer.topic(), position, line.length(), headerColumns, filePath);
-                    logger.info("manifest: {}", new String(manifestJson));
+                RawdataMessage.Builder messageBuilder = producer.builder();
+                messageBuilder.position(position);
 
+                messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
+                messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
+                producer.buffer(messageBuilder);
 
-                    RawdataMessage.Builder messageBuilder = producer.builder();
-                    messageBuilder.position(position);
-                    messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
-                    messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
-                    producer.buffer(messageBuilder);
+                positions.add(position);
 
-                    positions.add(position);
-                });
-                logger.info("positions: {}", positions);
-                String[] publishPositions = positions.toArray(new String[positions.size()]);
+                if (positions.size() >= maxBufferLines) {
+                    logger.info("positions: {}", positions);
+                    producer.publish(positions.toArray(new String[positions.size()]));
+                    positions = new ArrayList<>();
+                }
 
-                producer.publish(publishPositions);
-
-            } catch (IOException io) {
-                logger.error("Error reading file {}: {}", filePath, io.getMessage());
-                io.printStackTrace();
             }
+            if (positions.size() > 0) {
+                logger.info("last positions: {}", positions);
+                producer.publish(positions.toArray(new String[positions.size()]));
+            }
+
         } catch (Exception e) {
-            logger.error("Error creating rawdataproducer for {}: {}", filePath, e.getMessage());
+            logger.error("Error creating rawdataproducer for {}: {}", filename, e.getMessage());
             e.printStackTrace();
         }
     }
 
 
-//    public void readFromBucket() {
-//        try {
-//            Thread consumerThread = new Thread(() -> consumeMessages());
-//            consumerThread.start();
-//
-//            consumerThread.join();
-//        } catch (InterruptedException e) {
-//            logger.error("InterruptedException in readFromBucket: {}", e.getMessage());
-//            e.printStackTrace();
-//        } catch (Exception e) {
-//            logger.error("Exception in readFromBucket: {}", e.getMessage());
-//            e.printStackTrace();
-//        }
-//    }
 
     public void consumeMessages() {
         try (RawdataConsumer consumer = rawdataClient.consumer(rawdataTopic)) {
@@ -147,6 +130,9 @@ public class GoogleCloudStorage {
                 StringBuilder contentBuilder = new StringBuilder();
                 contentBuilder.append("\nposition: ").append(message.position());
                 for (String key : message.keys()) {
+                    logger.info("key: {}", key);
+                    logger.info("  message content for key {}: {}", key, new String(message.get(key)));
+                    logger.info("dekryptert mess: {}", new String(encryption.tryDecryptContent(message.get(key))));
                     contentBuilder
                             .append("\n\t").append(key).append(" => ")
                             .append(new String(encryption.tryDecryptContent(message.get(key))));
@@ -158,6 +144,30 @@ public class GoogleCloudStorage {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+    }
+
+
+    private void setConfiguration(String storageProvider) {
+        configuration = "gcs".equals(storageProvider) ?
+                Map.of(
+                        "local-temp-folder", localTemFolder,
+                        "avro-file.max.seconds", avrofileMaxSeconds,
+                        "avro-file.max.bytes", avrofileMaxBytes,
+                        "avro-file.sync.interval", avrofileSyncInterval,
+                        "gcs.bucket-name", storageBucket,
+                        "gcs.listing.min-interval-seconds", "3",
+                        "gcs.credential-provider", credentialProvider,
+                        "gcs.service-account.key-file", storageSecretFile)
+                :
+                Map.of(
+                        "local-temp-folder", localTemFolder,
+                        "avro-file.max.seconds", avrofileMaxSeconds,
+                        "avro-file.max.bytes", avrofileMaxBytes,
+                        "avro-file.sync.interval", avrofileSyncInterval,
+                        "listing.min-interval-seconds", "0",
+                        "filesystem.storage-folder", storageBucket
+                        )
+                ;
     }
 
 }
