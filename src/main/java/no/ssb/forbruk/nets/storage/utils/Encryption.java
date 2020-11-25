@@ -4,10 +4,7 @@ import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
 import no.ssb.rawdata.payload.encryption.EncryptionClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
-@Service
 public class Encryption {
     private static final Logger logger = LoggerFactory.getLogger(GoogleCloudStorage.class);
 
@@ -15,23 +12,18 @@ public class Encryption {
     static byte[] secretKey;
     static boolean doEncrypt;
 
-    @Value("#{environment.forbruk_nets_encryption_key}")
-    private String encryptionKey;
-    @Value("#{environment.forbruk_nets_encryption_salt}")
-    private String encryptionSalt;
-    @Value("${google.storage.encryption}")
-    private String encrypt;
-
-    public Encryption() {
-    }
+    String encryptionKey;
+    String encryptionSalt;
+    String encrypt;
 
     public Encryption(String encryptionKey, String encryptionSalt, String encrypt) {
         this.encryptionKey = encryptionKey;
         this.encryptionSalt = encryptionSalt;
         this.encrypt = encrypt;
+        initialize();
     }
 
-    public void initialize() {
+    private void initialize() {
         encryptionClient = new EncryptionClient();
         secretKey = encryptionClient.generateSecretKey(
                 encryptionKey.toCharArray(),
@@ -53,5 +45,14 @@ public class Encryption {
             return encryptionClient.decrypt(secretKey, content);
         }
         return content;
+    }
+
+    @Override
+    public String toString() {
+        return "Encryption{" +
+                "encryptionKey=" + encryptionKey.length() +
+                ", encryptionSalt=" + encryptionSalt.length() +
+                ", encrypt=" + encrypt +
+                '}';
     }
 }

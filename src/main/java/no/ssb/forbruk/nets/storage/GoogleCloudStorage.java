@@ -12,7 +12,6 @@ import no.ssb.rawdata.api.RawdataProducer;
 import no.ssb.service.provider.api.ProviderConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +42,13 @@ public class GoogleCloudStorage {
     @Value("${google.storage.buffer.lines}")
     int maxBufferLines;
 
+    @Value("#{environment.forbruk_nets_encryption_key}")
+    private String encryptionKey;
+    @Value("#{environment.forbruk_nets_encryption_salt}")
+    private String encryptionSalt;
+    @Value("${google.storage.encryption}")
+    private String encrypt;
+
 //    @Autowired
     Encryption encryption;
 
@@ -56,7 +62,8 @@ public class GoogleCloudStorage {
 
 
     public void initialize(String headerLine) {
-        encryption = new Encryption();
+        encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
+        logger.info(encryption.toString());
         logger.info("storageProvider: {}", storageProvider);
 //        logger.info("storageBucket: {}", storageBucket);
 //        logger.info("localTemFolder: {}", localTemFolder);
@@ -70,7 +77,6 @@ public class GoogleCloudStorage {
                 storageProvider, RawdataClientInitializer.class);
         logger.info("rawdataClient: {}", rawdataClient.toString());
 
-        encryption.initialize();
         headerColumns = headerLine.split(";");
 
     }
