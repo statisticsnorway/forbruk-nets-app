@@ -12,7 +12,7 @@ google:
       keyfile:
     credential:
       provider: compute-engine
-    encryption: false
+    encryption: true
     buffer:
       lines: 4
     local:

@@ -22,14 +22,20 @@ public class Encryption {
     @Value("${google.storage.encryption}")
     private String encrypt;
 
+    public Encryption() {
+    }
+
+    public Encryption(String encryptionKey, String encryptionSalt, String encrypt) {
+        this.encryptionKey = encryptionKey;
+        this.encryptionSalt = encryptionSalt;
+        this.encrypt = encrypt;
+    }
+
     public void initialize() {
-        logger.info("encryptionKey: {}", encryptionKey);
-        logger.info("encryptionSalt: {}", encryptionSalt);
         encryptionClient = new EncryptionClient();
         secretKey = encryptionClient.generateSecretKey(
                 encryptionKey.toCharArray(),
                 encryptionSalt.getBytes()).getEncoded();
-//        logger.info("secretKey: {}", secretKey);
         doEncrypt = encrypt != null && Boolean.parseBoolean(encrypt);
         logger.info("encrypt: {}, doEncrypt: {}", encrypt, doEncrypt);
     }

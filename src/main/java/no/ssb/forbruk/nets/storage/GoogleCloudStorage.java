@@ -43,7 +43,7 @@ public class GoogleCloudStorage {
     @Value("${google.storage.buffer.lines}")
     int maxBufferLines;
 
-    @Autowired
+//    @Autowired
     Encryption encryption;
 
     Map<String, String> configuration;
@@ -56,6 +56,7 @@ public class GoogleCloudStorage {
 
 
     public void initialize(String headerLine) {
+        encryption = new Encryption();
         logger.info("storageProvider: {}", storageProvider);
 //        logger.info("storageBucket: {}", storageBucket);
 //        logger.info("localTemFolder: {}", localTemFolder);
