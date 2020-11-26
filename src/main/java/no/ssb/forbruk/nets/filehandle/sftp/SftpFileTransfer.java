@@ -1,4 +1,4 @@
-package no.ssb.forbruk.nets.sftp;
+package no.ssb.forbruk.nets.filehandle.sftp;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
@@ -7,7 +7,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import no.ssb.forbruk.nets.db.model.NetsRecord;
 import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
-import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
+import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Vector;
 
 
@@ -51,84 +49,22 @@ public class SftpFileTransfer {
     @Value("#{environment.NETS_SECRET_STAGING}")
     private String privateKey;
 
-    @Value("${forbruk.nets.filedir}")
-    private String fileDir;
-    @Value("${forbruk.nets.header}")
-    private String headerLine;
-
-    @Autowired
-    NetsRecordRepository netsRecordRepository;
-
-    @Autowired
-    private GoogleCloudStorage googleCloudStorage;
 
     private static ChannelSftp channelSftp;
     private Session jschSession;
 
 
-    public void getAndHandleNetsFiles() {
-        try {
-            setupJsch();
-            googleCloudStorage.initialize(headerLine);
-
-            logger.info("find files and loop");
-            /* handle files in path */
-            fileList(WORKDIR).forEach(this::handleFile);
-        } catch (IOException e) {
-            logger.error("IO-feil: {}", e.toString());
-        } catch (SftpException e) {
-            logger.error("Sftp-feil: {}", e.toString());
-        } catch (JSchException e) {
-            logger.error("jsch-feil: {}", e.toString());
-        }
-        disconnectJsch();
-        printDb();
-    }
-
-
-    private Collection<ChannelSftp.LsEntry> fileList(String path) throws SftpException {
-        Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(path);
+    public Collection<ChannelSftp.LsEntry> fileList() throws SftpException {
+        Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(WORKDIR);
         Collection<ChannelSftp.LsEntry> fileList = Collections.list(files.elements());
         return fileList;
     }
 
-
-    private void handleFile(ChannelSftp.LsEntry f) {
-        logger.info("file in path: {}", f.getFilename());
-        try {
-//            channelSftp.get(WORKDIR + "/" + f.getFilename(), fileDir + f.getFilename());
-//            googleCloudStorage.produceMessages(fileDir + f.getFilename());
-            InputStream inputStream = channelSftp.get(WORKDIR + "/" + f.getFilename());
-            googleCloudStorage.produceMessages(inputStream, f.getFilename());
-
-            saveFileRecord(f.getFilename());
-            logger.info("read from bucket");
-            googleCloudStorage.consumeMessages();
-            logger.info("finished handled file");
-        } catch (SftpException e) {
-            logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            logger.error("Error producing messages for {}: {}", f.getFilename(), e.getMessage());
-            e.printStackTrace();
-        }
+    public InputStream getFileInputStream(ChannelSftp.LsEntry f) throws SftpException {
+        return channelSftp.get(WORKDIR + "/" + f.getFilename());
     }
 
-    private void saveFileRecord(String content) {
-        logger.info("file in path: {}", content);
-        NetsRecord nr = new NetsRecord();
-        nr.setContent(content);
-        nr.setTimestamp(LocalDateTime.now());
-        NetsRecord saved = netsRecordRepository.save(nr);
-    }
-
-    private void printDb() {
-        List<NetsRecord> dbrecs = netsRecordRepository.findAll();
-        dbrecs.forEach(d -> logger.info(d.toString()));
-    }
-
-
-    private void setupJsch() throws JSchException, IOException {
+    public void setupJsch() throws JSchException, IOException {
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
 
@@ -155,7 +91,7 @@ public class SftpFileTransfer {
     }
 
 
-    private void disconnectJsch() {
+    public void disconnectJsch() {
         if (channelSftp.isConnected()) {
             channelSftp.disconnect();
         }

@@ -1,6 +1,6 @@
 package no.ssb.forbruk.nets.health;
 
-import no.ssb.forbruk.nets.sftp.SftpFileTransfer;
+import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

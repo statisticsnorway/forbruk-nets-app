@@ -1,4 +1,4 @@
-package no.ssb.forbruk.nets.storage.utils;
+package no.ssb.forbruk.nets.filehandle.storage.utils;
 
 
 import org.junit.jupiter.api.Test;

@@ -1,6 +1,6 @@
-package no.ssb.forbruk.nets.storage.utils;
+package no.ssb.forbruk.nets.filehandle.storage.utils;
 
-import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
+import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
 import no.ssb.rawdata.payload.encryption.EncryptionClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

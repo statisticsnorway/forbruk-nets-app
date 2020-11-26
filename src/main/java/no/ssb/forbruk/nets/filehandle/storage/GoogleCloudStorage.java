@@ -1,9 +1,9 @@
-package no.ssb.forbruk.nets.storage;
+package no.ssb.forbruk.nets.filehandle.storage;
 
 
-import no.ssb.forbruk.nets.storage.utils.Encryption;
-import no.ssb.forbruk.nets.storage.utils.Manifest;
-import no.ssb.forbruk.nets.storage.utils.ULIDGenerator;
+import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
+import no.ssb.forbruk.nets.filehandle.storage.utils.Manifest;
+import no.ssb.forbruk.nets.filehandle.storage.utils.ULIDGenerator;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
 import no.ssb.rawdata.api.RawdataConsumer;

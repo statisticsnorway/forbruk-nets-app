@@ -1,6 +1,6 @@
 package no.ssb.forbruk.nets.controller;
 
-import no.ssb.forbruk.nets.sftp.SftpFileTransfer;
+import no.ssb.forbruk.nets.filehandle.NetsHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,13 +16,13 @@ public class NetsController {
     private static final Logger logger = LoggerFactory.getLogger(NetsController.class);
 
     @Autowired
-    SftpFileTransfer sftpFileTransfer;
+    NetsHandle netsHandle;
 
 
     @GetMapping("/netsfiles")
     public ResponseEntity<String> runSftpFileTransferList() {
         logger.info("Called netsfiles - " + LocalDateTime.now());
-        sftpFileTransfer.getAndHandleNetsFiles();
+        netsHandle.getAndHandleNetsFiles();
         return new ResponseEntity<>("Files treated", HttpStatus.OK);
 
     }
