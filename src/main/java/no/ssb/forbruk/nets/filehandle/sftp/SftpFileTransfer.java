@@ -5,9 +5,8 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
-import no.ssb.forbruk.nets.db.model.NetsRecord;
-import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
-import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
+import io.micrometer.core.annotation.Timed;
+import no.ssb.forbruk.nets.metrics.MetricsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,13 +52,28 @@ public class SftpFileTransfer {
     private static ChannelSftp channelSftp;
     private Session jschSession;
 
+    private MetricsManager metricsManager;
 
+    @Autowired
+    public void setMetricsManager(MetricsManager metricsManager) {
+        this.metricsManager = metricsManager;
+    }
+
+
+    public void initialize(MetricsManager metricsManager) throws IOException, JSchException {
+        this.metricsManager = metricsManager;
+        this.setupJsch();
+    }
+
+    @Timed(description = "Time get one list of files from nets")
     public Collection<ChannelSftp.LsEntry> fileList() throws SftpException {
         Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(WORKDIR);
         Collection<ChannelSftp.LsEntry> fileList = Collections.list(files.elements());
+        metricsManager.trackCounterMetrics("forbruk_nets_app.files", fileList.size(), "filesFromNets", "count");
         return fileList;
     }
 
+    @Timed(description = "Time get one file from nets")
     public InputStream getFileInputStream(ChannelSftp.LsEntry f) throws SftpException {
         return channelSftp.get(WORKDIR + "/" + f.getFilename());
     }
