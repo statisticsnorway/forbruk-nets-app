@@ -29,10 +29,11 @@ google:
 management:
   endpoints:
     web:
-      exposure.include: prometheus
-    base-path: /
-    path-mapping:
-      prometheus: health, metrics
+      exposure:
+        include: prometheus,health,info,metric
+#    base-path: /
+#    path-mapping:
+#      prometheus: health, metrics
 
 tracing:
   enabled: true

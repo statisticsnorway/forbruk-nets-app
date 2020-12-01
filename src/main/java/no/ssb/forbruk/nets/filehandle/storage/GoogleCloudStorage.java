@@ -1,9 +1,11 @@
 package no.ssb.forbruk.nets.filehandle.storage;
 
 
+import io.micrometer.core.annotation.Timed;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Manifest;
 import no.ssb.forbruk.nets.filehandle.storage.utils.ULIDGenerator;
+import no.ssb.forbruk.nets.metrics.MetricsManager;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
 import no.ssb.rawdata.api.RawdataConsumer;
@@ -49,8 +51,8 @@ public class GoogleCloudStorage {
     @Value("${google.storage.encryption}")
     private String encrypt;
 
-//    @Autowired
     Encryption encryption;
+    MetricsManager metricsManager;
 
     Map<String, String> configuration;
     static RawdataClient rawdataClient;
@@ -61,7 +63,7 @@ public class GoogleCloudStorage {
     final static String avrofileSyncInterval =  "524288";
 
 
-    public void initialize(String headerLine) {
+    public void initialize(String headerLine, MetricsManager metricsManager) {
         encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
         logger.info(encryption.toString());
         logger.info("storageProvider: {}", storageProvider);
@@ -78,9 +80,10 @@ public class GoogleCloudStorage {
         logger.info("rawdataClient: {}", rawdataClient.toString());
 
         headerColumns = headerLine.split(";");
-
+        this.metricsManager = metricsManager;
     }
 
+    @Timed(description = "Time store transactions for one file")
     public void produceMessages(InputStream inputStream, String filename) {
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -110,6 +113,7 @@ public class GoogleCloudStorage {
                 if (positions.size() >= maxBufferLines) {
                     logger.info("positions: {}", positions);
                     producer.publish(positions.toArray(new String[positions.size()]));
+                    metricsManager.trackCounterMetrics("forbruk_nets_app.transactions", positions.size(), "transactionStored", "count");
                     positions = new ArrayList<>();
                 }
 
@@ -117,6 +121,7 @@ public class GoogleCloudStorage {
             if (positions.size() > 0) {
                 logger.info("last positions: {}", positions);
                 producer.publish(positions.toArray(new String[positions.size()]));
+                metricsManager.trackCounterMetrics("forbruk_nets_app.transactions", positions.size(), "transactionStored", "count");
             }
 
         } catch (Exception e) {
@@ -132,19 +137,19 @@ public class GoogleCloudStorage {
             logger.info("consumer: {}", consumer.topic());
             RawdataMessage message;
             while ((message = consumer.receive(1, TimeUnit.SECONDS)) != null) {
-                logger.info("message position: {}", message.position());
+//                logger.info("message position: {}", message.position());
                 // print message
                 StringBuilder contentBuilder = new StringBuilder();
                 contentBuilder.append("\nposition: ").append(message.position());
                 for (String key : message.keys()) {
-                    logger.info("key: {}", key);
-                    logger.info("  message content for key {}: {}", key, new String(message.get(key)));
-                    logger.info("dekryptert mess: {}", new String(encryption.tryDecryptContent(message.get(key))));
+//                    logger.info("key: {}", key);
+//                    logger.info("  message content for key {}: {}", key, new String(message.get(key)));
+//                    logger.info("dekryptert mess: {}", new String(encryption.tryDecryptContent(message.get(key))));
                     contentBuilder
                             .append("\n\t").append(key).append(" => ")
                             .append(new String(encryption.tryDecryptContent(message.get(key))));
                 }
-                logger.info("consumed message {}", contentBuilder.toString());
+//                logger.info("consumed message {}", contentBuilder.toString());
             }
         } catch (Exception e) {
             logger.error("Error consuming messages: {}", e.getMessage());

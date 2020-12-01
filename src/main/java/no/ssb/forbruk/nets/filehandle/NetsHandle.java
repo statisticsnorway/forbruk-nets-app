@@ -3,10 +3,12 @@ package no.ssb.forbruk.nets.filehandle;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
+import io.micrometer.core.annotation.Timed;
 import no.ssb.forbruk.nets.db.model.NetsRecord;
 import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
 import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
+import no.ssb.forbruk.nets.metrics.MetricsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Timed
 public class NetsHandle {
     private static final Logger logger = LoggerFactory.getLogger(NetsHandle.class);
 
@@ -34,21 +37,28 @@ public class NetsHandle {
     @Value("${forbruk.nets.header}")
     String headerLine;
 
+    MetricsManager metricsManager;
+
+    public void initialize(MetricsManager metricsManager) throws IOException, JSchException {
+        this.metricsManager = metricsManager;
+        this.sftpFileTransfer.initialize(metricsManager);
+        logger.info("sftpFileTransfer initialized");
+        this.googleCloudStorage.initialize(headerLine, metricsManager);
+        logger.info("googleCloudStorage initialized");
+    }
+
+    @Timed(description = "Time handling files from nets", longTask = true)
     public void getAndHandleNetsFiles() {
         try {
-            sftpFileTransfer.setupJsch();
-            googleCloudStorage.initialize(headerLine);
-
             logger.info("find files and loop");
             /* handle files in path */
             sftpFileTransfer.fileList().forEach(this::handleFile);
-        } catch (IOException e) {
-            logger.error("IO-feil: {}", e.toString());
         } catch (SftpException e) {
             logger.error("Sftp-feil: {}", e.toString());
-        } catch (JSchException e) {
-            logger.error("jsch-feil: {}", e.toString());
         }
+    }
+
+    public void endHandleNetsFiles() {
         sftpFileTransfer.disconnectJsch();
         printDb();
     }
@@ -64,6 +74,7 @@ public class NetsHandle {
             logger.info("read from bucket");
             googleCloudStorage.consumeMessages();
             logger.info("finished handled file");
+            metricsManager.trackCounterMetrics("forbruk_nets_app.file", 1, "filesTreated", "count");
         } catch (SftpException e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
