@@ -67,9 +67,9 @@ public class NetsHandle {
         logger.info("file in path: {}", f.getFilename());
         try {
             InputStream inputStream = sftpFileTransfer.getFileInputStream(f);
-            googleCloudStorage.produceMessages(inputStream, f.getFilename());
+            int totalTransactions = googleCloudStorage.produceMessages(inputStream, f.getFilename());
 
-            saveFileRecord(f.getFilename());
+            saveFileRecord(totalTransactions + " transactions saved for " + f.getFilename());
 
             logger.info("read from bucket");
             googleCloudStorage.consumeMessages();

@@ -15,18 +15,37 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+
 @RestController
 public class NetsController {
+    private static final Logger logger = LoggerFactory.getLogger(NetsController.class);
 
     @Autowired
-    RunMain runMain;
+    NetsHandle netsHandle;
 
     @Autowired
-    MetricsManager metricsManager;
+    private MetricsManager metricsManager;
 
     @GetMapping("/netsfiles")
+    @Timed(description = "Time spent running controller")
     public ResponseEntity<String> handleNetsFiles() {
-        runMain.runNetsHandle(metricsManager);
+        try {
+            this.netsHandle.initialize(metricsManager);
+            logger.info("Called netsfiles - " + LocalDateTime.now());
+            netsHandle.getAndHandleNetsFiles();
+            netsHandle.endHandleNetsFiles();
+        } catch (IOException e) {
+            logger.info("Something went wrong in initializing netsHandle: {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Noe gikk dessverre feil.", HttpStatus.FAILED_DEPENDENCY);
+        } catch (JSchException e) {
+            logger.info("Something went wrong in initializing Jsch: {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Noe gikk dessverre feil i kommunikasjon med Nets.", HttpStatus.FAILED_DEPENDENCY);
+        }
+
         return new ResponseEntity<>("Files treated", HttpStatus.OK);
 
     }

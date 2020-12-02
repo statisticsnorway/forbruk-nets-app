@@ -84,7 +84,8 @@ public class GoogleCloudStorage {
     }
 
     @Timed(description = "Time store transactions for one file")
-    public void produceMessages(InputStream inputStream, String filename) {
+    public int produceMessages(InputStream inputStream, String filename) {
+        int totalTransactions = 0;
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             boolean skipHeader = false;
@@ -114,6 +115,7 @@ public class GoogleCloudStorage {
                     logger.info("positions: {}", positions);
                     producer.publish(positions.toArray(new String[positions.size()]));
                     metricsManager.trackCounterMetrics("forbruk_nets_app.transactions", positions.size(), "transactionStored", "count");
+                    totalTransactions += positions.size();
                     positions = new ArrayList<>();
                 }
 
@@ -122,12 +124,14 @@ public class GoogleCloudStorage {
                 logger.info("last positions: {}", positions);
                 producer.publish(positions.toArray(new String[positions.size()]));
                 metricsManager.trackCounterMetrics("forbruk_nets_app.transactions", positions.size(), "transactionStored", "count");
+                totalTransactions += positions.size();
             }
 
         } catch (Exception e) {
             logger.error("Error creating rawdataproducer for {}: {}", filename, e.getMessage());
             e.printStackTrace();
         }
+        return totalTransactions;
     }
 
 

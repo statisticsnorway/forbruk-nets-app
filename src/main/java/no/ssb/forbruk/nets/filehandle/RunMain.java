@@ -6,22 +6,25 @@ import no.ssb.forbruk.nets.metrics.MetricsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Service
-public class RunMain {
+public class RunMain  implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(RunMain.class);
 
     @Autowired
     NetsHandle netsHandle;
 
+    @Autowired MetricsManager metricsManager;
+
+
 
     @Timed(description = "Time spent running controller")
-    public void runNetsHandle (MetricsManager metricsManager) {
+    public void run(String... args) {
         logMainMetrics(metricsManager);
         try {
             netsHandle.initialize(metricsManager);

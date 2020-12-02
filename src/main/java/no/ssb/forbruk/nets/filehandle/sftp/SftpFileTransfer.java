@@ -13,10 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Vector;
@@ -61,6 +64,7 @@ public class SftpFileTransfer {
 
 
     public void initialize(MetricsManager metricsManager) throws IOException, JSchException {
+        logger.info("SESSION_TIMEOUT: {}", SESSION_TIMEOUT);
         this.metricsManager = metricsManager;
         this.setupJsch();
     }
@@ -83,6 +87,10 @@ public class SftpFileTransfer {
         jsch.setKnownHosts("~/.ssh/known_hosts");
 
         String tmpPrivateKeyFile = createTemporaryPrivateKeyFile();
+
+        String privKey = new String(Files.readAllBytes(Paths.get(tmpPrivateKeyFile)));
+        logger.info("privKey:{} ... {}", privKey.substring(0,30), privKey.substring(privKey.length() - 50));
+
         jsch.addIdentity(tmpPrivateKeyFile, passphrase);
         jschSession = jsch.getSession(USER, HOST, PORT);
         jschSession.setConfig("StrictHostKeyChecking", "no");
@@ -97,6 +105,8 @@ public class SftpFileTransfer {
 
 
     private String createTemporaryPrivateKeyFile() throws IOException {
+        logger.info("privatekeyfile: {}", privatekeyfile.isEmpty() ? " null" : privatekeyfile);
+        logger.info("privateKey: {}", privateKey == null ? " null" : privateKey);
         String tmpPrivateKeyFile = "tmp/" + "nets" + ".pk";
         Files.write(Path.of(tmpPrivateKeyFile),
                     privatekeyfile.isEmpty() ?
