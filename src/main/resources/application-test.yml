@@ -1,0 +1,50 @@
+server:
+  port: 8079
+
+storage:
+  provider: filesystem
+google:
+  storage:
+    provider:
+      bucket: "tmp/rawdata/nets"
+      topic: test-transactions
+    secret:
+      keyfile:
+    credential:
+      provider: compute-engine
+    encryption: true
+    buffer:
+      lines: 4
+    local:
+      temp:
+        folder: "tmp/rawdata/nets/local-temp"
+
+# Configuration used in connection to NETS
+forbruk:
+  nets:
+    host: 91.102.24.144
+    user: tSSBNO
+    port: 22
+    session_timeout: 10000
+    channel_timeout: 5000
+    workdir: "./Outbound"
+    privatekeyfile:
+    filedir: "tmp/"
+    header: "TRANSAKSJONSDATO;TRANSAKSJONSTID;BRUKERSTED;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT;BR_STED_NAVN_TERM;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN"
+
+
+# Scheduler
+scheduled:
+  cron:
+    listfiles: "0 0/2 6-16 * * ?"
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: username
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+
+

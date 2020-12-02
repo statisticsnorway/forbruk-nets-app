@@ -12,22 +12,22 @@ public class Encryption {
     static byte[] secretKey;
     static boolean doEncrypt;
 
-    String encryptionKey;
-    String encryptionSalt;
     String encrypt;
 
     public Encryption(String encryptionKey, String encryptionSalt, String encrypt) {
-        this.encryptionKey = encryptionKey;
-        this.encryptionSalt = encryptionSalt;
+        logger.info("key: {}", encryptionKey);
+        logger.info("salt: {}", encryptionSalt);
+        logger.info("encrypt: {}", encrypt);
         this.encrypt = encrypt;
-        initialize();
+        initialize(encryptionKey, encryptionSalt);
     }
 
-    private void initialize() {
+    private void initialize(String encryptionKey, String encryptionSalt) {
         encryptionClient = new EncryptionClient();
-        secretKey = encryptionClient.generateSecretKey(
+        doEncrypt = encrypt != null && Boolean.parseBoolean(encrypt);
+        secretKey = doEncrypt ? encryptionClient.generateSecretKey(
                 encryptionKey.toCharArray(),
-                encryptionSalt.getBytes()).getEncoded();
+                encryptionSalt.getBytes()).getEncoded() : null;
         doEncrypt = encrypt != null && Boolean.parseBoolean(encrypt);
         logger.info("encrypt: {}, doEncrypt: {}", encrypt, doEncrypt);
     }
@@ -50,9 +50,7 @@ public class Encryption {
     @Override
     public String toString() {
         return "Encryption{" +
-                "encryptionKey=" + encryptionKey.length() +
-                ", encryptionSalt=" + encryptionSalt.length() +
-                ", encrypt=" + encrypt +
+                "encrypt=" + encrypt +
                 '}';
     }
 }

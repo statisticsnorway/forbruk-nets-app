@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -64,14 +65,14 @@ public class GoogleCloudStorage {
 
 
     public void initialize(String headerLine, MetricsManager metricsManager) {
-        encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
+        encryption = makeEncryption(encryptionKey, encryptionSalt, encrypt);
         logger.info(encryption.toString());
         logger.info("storageProvider: {}", storageProvider);
-//        logger.info("storageBucket: {}", storageBucket);
-//        logger.info("localTemFolder: {}", localTemFolder);
-//        logger.info("credentialProvider: {}", credentialProvider);
-//        logger.info("storageSecretFile: {}", storageSecretFile);
-//        logger.info("rawdataTopic: {}", rawdataTopic);
+        logger.info("storageBucket: {}", storageBucket);
+        logger.info("localTemFolder: {}", localTemFolder);
+        logger.info("credentialProvider: {}", credentialProvider);
+        logger.info("storageSecretFile: {}", storageSecretFile);
+        logger.info("rawdataTopic: {}", rawdataTopic);
 
         setConfiguration(storageProvider);
         configuration.forEach((k,v) -> logger.info("config {}:{}", k, v));
@@ -83,8 +84,17 @@ public class GoogleCloudStorage {
         this.metricsManager = metricsManager;
     }
 
+    Encryption makeEncryption(String encryptionKey, String encryptionSalt, String encrypt) {
+        return new Encryption(encryptionKey, encryptionSalt, encrypt);
+    }
+
     @Timed(description = "Time store transactions for one file")
     public void produceMessages(InputStream inputStream, String filename) {
+        try {
+            logger.info("inputStream: {}", inputStream.readAllBytes().toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             boolean skipHeader = false;
@@ -98,13 +108,13 @@ public class GoogleCloudStorage {
 
                 String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
 
-                byte[] manifestJson = Manifest.generateManifest(
+                String manifestJson = Manifest.generateManifesJson(
                         producer.topic(), position, line.length(), headerColumns, filename);
 
                 RawdataMessage.Builder messageBuilder = producer.builder();
                 messageBuilder.position(position);
 
-                messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
+                messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson.getBytes()));
                 messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
                 producer.buffer(messageBuilder);
 

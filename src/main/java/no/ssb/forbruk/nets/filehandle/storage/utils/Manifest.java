@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 public class Manifest {
     static MetadataContent.Builder metadataContentBuilder = new MetadataContent.Builder();
 
-    public static byte[] generateManifest(String topic, String position, int contentLength,
+    public static String generateManifesJson(String topic, String position, int contentLength,
                                           String[] headerColumns, String filename ) {
 
         metadataContentBuilder.topic(topic)
@@ -34,6 +34,6 @@ public class Manifest {
             metadataContentBuilder.csvMapping(headerColumn, avroColumn);
         }
 
-        return metadataContentBuilder.build().toJSON().getBytes();
+        return metadataContentBuilder.build().toJSON();
     }
 }
