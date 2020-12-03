@@ -17,7 +17,7 @@ google:
       lines: 4
     local:
       temp:
-        folder: "tmp/rawdata/nets/local-temp"
+        folder: "tmp/rawdata/nets/local-test-temp"
 
 # Configuration used in connection to NETS
 forbruk:

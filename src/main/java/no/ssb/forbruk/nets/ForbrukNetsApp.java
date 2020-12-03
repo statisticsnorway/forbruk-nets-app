@@ -33,6 +33,7 @@ public class ForbrukNetsApp implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		runMain.run();
+		Thread.sleep(60000);
 		System.exit(0);
 	}
 }

@@ -19,7 +19,7 @@ google:
     encryption: true
     local:
       temp:
-        folder: "tmp/rawdata/nets/local-temp"
+        folder: "tmp/rawdata/nets/local-temp-gcs"
 
 # Scheduler
 scheduled:
