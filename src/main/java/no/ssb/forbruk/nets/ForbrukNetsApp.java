@@ -6,10 +6,10 @@ import no.ssb.forbruk.nets.filehandle.RunMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
@@ -21,7 +21,8 @@ public class ForbrukNetsApp implements CommandLineRunner {
 	RunMain runMain;
 
 	public static void main(String[] args) {
-		SpringApplication.run(ForbrukNetsApp.class, args);
+//		SpringApplication.run(ForbrukNetsApp.class, args);
+		System.exit(SpringApplication.exit(SpringApplication.run(ForbrukNetsApp.class, args)));
 		logger.info("Startup complete.");
 	}
 
@@ -34,6 +35,5 @@ public class ForbrukNetsApp implements CommandLineRunner {
 	public void run(String... args) throws Exception {
 		runMain.run();
 		Thread.sleep(60000);
-		System.exit(0);
 	}
 }
