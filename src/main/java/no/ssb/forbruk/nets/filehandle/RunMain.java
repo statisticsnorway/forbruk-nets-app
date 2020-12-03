@@ -6,26 +6,24 @@ import no.ssb.forbruk.nets.metrics.MetricsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Service
-public class RunMain  implements CommandLineRunner {
+public class RunMain {
     private static final Logger logger = LoggerFactory.getLogger(RunMain.class);
 
     @Autowired
     NetsHandle netsHandle;
 
-    @Autowired MetricsManager metricsManager;
-
-
+    @Autowired
+    MetricsManager metricsManager;
 
     @Timed(description = "Time spent running controller")
     public void run(String... args) {
-        logMainMetrics(metricsManager);
+        logMainMetrics();
         try {
             netsHandle.initialize(metricsManager);
             logger.info("Called netsfiles - " + LocalDateTime.now());
@@ -41,7 +39,7 @@ public class RunMain  implements CommandLineRunner {
 
     }
 
-    private void logMainMetrics(MetricsManager metricsManager) {
+    private void logMainMetrics() {
         logger.info("Call tracker - " + LocalDateTime.now());
         metricsManager.registerGauge("forbruk_nets_app.reg", Double.valueOf("1"));
         metricsManager.trackGaugeMetrics("forbruk_nets_app.called", 1.0d, "controllerCalled", "run");

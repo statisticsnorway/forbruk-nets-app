@@ -26,28 +26,13 @@ public class NetsController {
     NetsHandle netsHandle;
 
     @Autowired
-    private MetricsManager metricsManager;
+    private RunMain runMain;
 
     @GetMapping("/netsfiles")
     @Timed(description = "Time spent running controller")
     public ResponseEntity<String> handleNetsFiles() {
-        try {
-            this.netsHandle.initialize(metricsManager);
-            logger.info("Called netsfiles - " + LocalDateTime.now());
-            netsHandle.getAndHandleNetsFiles();
-            netsHandle.endHandleNetsFiles();
-        } catch (IOException e) {
-            logger.info("Something went wrong in initializing netsHandle: {}", e.getMessage());
-            e.printStackTrace();
-            return new ResponseEntity<>("Noe gikk dessverre feil.", HttpStatus.FAILED_DEPENDENCY);
-        } catch (JSchException e) {
-            logger.info("Something went wrong in initializing Jsch: {}", e.getMessage());
-            e.printStackTrace();
-            return new ResponseEntity<>("Noe gikk dessverre feil i kommunikasjon med Nets.", HttpStatus.FAILED_DEPENDENCY);
-        }
-
+        runMain.run();
         return new ResponseEntity<>("Files treated", HttpStatus.OK);
-
     }
 
 

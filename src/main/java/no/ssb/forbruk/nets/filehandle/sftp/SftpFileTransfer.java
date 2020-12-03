@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -106,7 +104,7 @@ public class SftpFileTransfer {
 
     private String createTemporaryPrivateKeyFile() throws IOException {
         logger.info("privatekeyfile: {}", privatekeyfile.isEmpty() ? " null" : privatekeyfile);
-        logger.info("privateKey: {}", privateKey == null ? " null" : privateKey);
+        logger.info("privateKey: {}", privateKey == null ? " null" : privateKey.substring(privateKey.length()-50));
         String tmpPrivateKeyFile = "tmp/" + "nets" + ".pk";
         Files.write(Path.of(tmpPrivateKeyFile),
                     privatekeyfile.isEmpty() ?
