@@ -65,8 +65,8 @@ public class GoogleCloudStorage {
 
     public void initialize(String headerLine, MetricsManager metricsManager) {
         encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
-        logger.info(encryption.toString());
-        logger.info("storageProvider: {}", storageProvider);
+//        logger.info(encryption.toString());
+//        logger.info("storageProvider: {}", storageProvider);
 //        logger.info("storageBucket: {}", storageBucket);
 //        logger.info("localTemFolder: {}", localTemFolder);
 //        logger.info("credentialProvider: {}", credentialProvider);
@@ -74,10 +74,10 @@ public class GoogleCloudStorage {
 //        logger.info("rawdataTopic: {}", rawdataTopic);
 
         setConfiguration(storageProvider);
-        configuration.forEach((k,v) -> logger.info("config {}:{}", k, v));
+//        configuration.forEach((k,v) -> logger.info("config {}:{}", k, v));
         rawdataClient = ProviderConfigurator.configure(configuration,
                 storageProvider, RawdataClientInitializer.class);
-        logger.info("rawdataClient: {}", rawdataClient.toString());
+//        logger.info("rawdataClient: {}", rawdataClient.toString());
 
         headerColumns = headerLine.split(";");
         this.metricsManager = metricsManager;
@@ -136,6 +136,7 @@ public class GoogleCloudStorage {
 
 
 
+    //TODO: Move this to test
     public void consumeMessages() {
         try (RawdataConsumer consumer = rawdataClient.consumer(rawdataTopic)) {
             logger.info("consumer: {}", consumer.topic());

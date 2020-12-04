@@ -2,10 +2,7 @@ package no.ssb.forbruk.nets.controller;
 
 import com.jcraft.jsch.JSchException;
 import io.micrometer.core.annotation.Timed;
-import io.micrometer.core.instrument.Clock;
-import io.micrometer.core.instrument.Timer;
 import no.ssb.forbruk.nets.filehandle.NetsHandle;
-import no.ssb.forbruk.nets.filehandle.RunMain;
 import no.ssb.forbruk.nets.metrics.MetricsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,12 +23,23 @@ public class NetsController {
     NetsHandle netsHandle;
 
     @Autowired
-    private RunMain runMain;
+    MetricsManager metricsManager;
 
     @GetMapping("/netsfiles")
     @Timed(description = "Time spent running controller")
     public ResponseEntity<String> handleNetsFiles() {
-        runMain.run();
+        try {
+            netsHandle.initialize(metricsManager);
+            logger.info("Called netsfiles - " + LocalDateTime.now());
+//            netsHandle.getAndHandleNetsFiles();
+            netsHandle.endHandleNetsFiles();
+        } catch (IOException e) {
+            logger.info("Something went wrong in initializing netsHandle: {}", e.getMessage());
+            e.printStackTrace();
+        } catch (JSchException e) {
+            logger.info("Something went wrong in initializing Jsch: {}", e.getMessage());
+            e.printStackTrace();
+        }
         return new ResponseEntity<>("Files treated", HttpStatus.OK);
     }
 
