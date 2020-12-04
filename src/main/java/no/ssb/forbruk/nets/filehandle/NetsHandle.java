@@ -4,11 +4,11 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
 import no.ssb.forbruk.nets.db.model.NetsRecord;
 import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
 import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
-import no.ssb.forbruk.nets.metrics.MetricsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,17 +37,17 @@ public class NetsHandle {
     @Value("${forbruk.nets.header}")
     String headerLine;
 
-    MetricsManager metricsManager;
+    @Autowired
+    MeterRegistry meterRegistry;
 
-    public void initialize(MetricsManager metricsManager) throws IOException, JSchException {
-        this.metricsManager = metricsManager;
-        this.sftpFileTransfer.initialize(metricsManager);
+    public void initialize() throws IOException, JSchException {
+        this.sftpFileTransfer.setupJsch();
         logger.info("sftpFileTransfer initialized");
-        this.googleCloudStorage.initialize(headerLine, metricsManager);
+        this.googleCloudStorage.initialize(headerLine);
         logger.info("googleCloudStorage initialized");
     }
 
-    @Timed(description = "Time handling files from nets", longTask = true)
+    @Timed(value = "forbruk_nets_app_handlenetsfiles", description = "Time handling files from nets", longTask = true)
     public void getAndHandleNetsFiles() {
         try {
             logger.info("find files and loop");
@@ -74,7 +74,7 @@ public class NetsHandle {
             logger.info("read from bucket");
             googleCloudStorage.consumeMessages();
             logger.info("finished handled file");
-            metricsManager.trackCounterMetrics("forbruk_nets_app.file", 1, "filesTreated", "count");
+            meterRegistry.counter("forbruk_nets_app.files_handled", "filesTreated", "count").increment();
         } catch (SftpException e) {
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();

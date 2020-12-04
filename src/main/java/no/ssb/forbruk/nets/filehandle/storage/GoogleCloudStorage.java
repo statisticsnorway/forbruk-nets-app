@@ -1,11 +1,12 @@
 package no.ssb.forbruk.nets.filehandle.storage;
 
 
+import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Manifest;
 import no.ssb.forbruk.nets.filehandle.storage.utils.ULIDGenerator;
-import no.ssb.forbruk.nets.metrics.MetricsManager;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
 import no.ssb.rawdata.api.RawdataConsumer;
@@ -14,16 +15,19 @@ import no.ssb.rawdata.api.RawdataProducer;
 import no.ssb.service.provider.api.ProviderConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class GoogleCloudStorage {
@@ -52,7 +56,10 @@ public class GoogleCloudStorage {
     private String encrypt;
 
     Encryption encryption;
-    MetricsManager metricsManager;
+
+    @Autowired
+    MeterRegistry meterRegistry;
+
 
     Map<String, String> configuration;
     static RawdataClient rawdataClient;
@@ -63,7 +70,8 @@ public class GoogleCloudStorage {
     final static String avrofileSyncInterval =  "524288";
 
 
-    public void initialize(String headerLine, MetricsManager metricsManager) {
+    @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
+    public void initialize(String headerLine) {
         encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
 //        logger.info(encryption.toString());
 //        logger.info("storageProvider: {}", storageProvider);
@@ -74,58 +82,54 @@ public class GoogleCloudStorage {
 //        logger.info("rawdataTopic: {}", rawdataTopic);
 
         setConfiguration(storageProvider);
-//        configuration.forEach((k,v) -> logger.info("config {}:{}", k, v));
         rawdataClient = ProviderConfigurator.configure(configuration,
                 storageProvider, RawdataClientInitializer.class);
 //        logger.info("rawdataClient: {}", rawdataClient.toString());
 
         headerColumns = headerLine.split(";");
-        this.metricsManager = metricsManager;
+//        this.metricsManager = metricsManager;
     }
 
-    @Timed(description = "Time store transactions for one file")
+    @Timed(value="forbruk_nets_app_producemessages", description="Time store transactions for one file")
     public int produceMessages(InputStream inputStream, String filename) {
         int totalTransactions = 0;
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            boolean skipHeader = false;
+            AtomicBoolean skipHeader = new AtomicBoolean(false);
             List<String> positions = new ArrayList<>();
             String line;
             while ((line = reader.readLine()) != null) {
-                if (!skipHeader) {
-                    skipHeader = true;
-                    continue;
-                }
+                try {
+                    if (skipHeader.getAndSet(true)) {
+                        String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
 
-                String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
+                        byte[] manifestJson = Manifest.generateManifest(
+                                producer.topic(), position, line.length(),
+                                headerColumns, filename);
 
-                byte[] manifestJson = Manifest.generateManifest(
-                        producer.topic(), position, line.length(), headerColumns, filename);
+                        RawdataMessage.Builder messageBuilder = producer.builder();
+                        messageBuilder.position(position);
 
-                RawdataMessage.Builder messageBuilder = producer.builder();
-                messageBuilder.position(position);
+                        messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
+                        messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
+                        producer.buffer(messageBuilder);
 
-                messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
-                messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
-                producer.buffer(messageBuilder);
+                        positions.add(position);
 
-                positions.add(position);
-
-                if (positions.size() >= maxBufferLines) {
-                    logger.info("positions: {}", positions);
-                    producer.publish(positions.toArray(new String[positions.size()]));
-                    metricsManager.trackCounterMetrics("forbruk_nets_app.transactions", positions.size(), "transactionStored", "count");
-                    totalTransactions += positions.size();
-                    positions = new ArrayList<>();
+                        // publish every maxBufferLines lines
+                        if (positions.size() >= maxBufferLines) {
+                            totalTransactions += publishPositions(producer, positions);
+                            positions = new ArrayList<>();
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.error("Error creating or buffering message for line {}", line);
                 }
 
             }
-            if (positions.size() > 0) {
-                logger.info("last positions: {}", positions);
-                producer.publish(positions.toArray(new String[positions.size()]));
-                metricsManager.trackCounterMetrics("forbruk_nets_app.transactions", positions.size(), "transactionStored", "count");
-                totalTransactions += positions.size();
-            }
+            // publish the last positions for file
+            totalTransactions += positions.size() > 0 ?
+                    publishPositions(producer, positions) : 0;
 
         } catch (Exception e) {
             logger.error("Error creating rawdataproducer for {}: {}", filename, e.getMessage());
@@ -134,9 +138,26 @@ public class GoogleCloudStorage {
         return totalTransactions;
     }
 
+    @Timed(value="forbruk_nets_app_publishpositions", description = "publish positions")
+    protected int publishPositions(RawdataProducer producer, List<String> positions) {
+        try {
+            logger.info("publish {} positions", positions.size());
+            producer.publish(positions.toArray(new String[positions.size()]));
+            meterRegistry.gauge("forbruk_nets_app_transactions", positions.size());
+            meterRegistry.counter("forbruk_nets_app_total_transactions", "transactionStored", "count").increment(positions.size());
+            return positions.size();
+        } catch (Exception e) {
+            logger.error("something went wrong when publishing positions \n\t {} to {}", positions.get(0), positions.get(positions.size()-1));
+            return 0;
+        }
+
+
+
+    }
 
 
     //TODO: Move this to test
+    @Timed(value="forbruk_nets_app_consumemessages", description="consume messages")
     public void consumeMessages() {
         try (RawdataConsumer consumer = rawdataClient.consumer(rawdataTopic)) {
             logger.info("consumer: {}", consumer.topic());
@@ -185,6 +206,7 @@ public class GoogleCloudStorage {
                         "filesystem.storage-folder", storageBucket
                         )
                 ;
+//                configuration.forEach((k,v) -> logger.info("config {}:{}", k, v));
     }
 
 }
