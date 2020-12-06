@@ -123,6 +123,7 @@ public class GoogleCloudStorage {
                         }
                     }
                 } catch (Exception e) {
+                    meterRegistry.counter("forbruk_nets_app_error_producemessages", "error", "produce messages");
                     logger.error("Error creating or buffering message for line {}", line);
                 }
 
@@ -132,6 +133,7 @@ public class GoogleCloudStorage {
                     publishPositions(producer, positions) : 0;
 
         } catch (Exception e) {
+            meterRegistry.counter("forbruk_nets_app_error_rawdataproducer", "error", "generate rawdataproducer");
             logger.error("Error creating rawdataproducer for {}: {}", filename, e.getMessage());
             e.printStackTrace();
         }
@@ -142,15 +144,15 @@ public class GoogleCloudStorage {
     protected int publishPositions(RawdataProducer producer, List<String> positions) {
         try {
             logger.info("publish {} positions", positions.size());
-            producer.publish(positions.toArray(new String[positions.size()]));
+            producer.publish(positions.toArray(new String[0]));
             meterRegistry.gauge("forbruk_nets_app_transactions", positions.size());
-            meterRegistry.counter("forbruk_nets_app_total_transactions", "transactionStored", "count").increment(positions.size());
+            meterRegistry.counter("forbruk_nets_app_total_transactions", "count", "transactions stored").increment(positions.size());
             return positions.size();
         } catch (Exception e) {
+            meterRegistry.counter("forbruk_nets_app_error_publischpositions", "error", "store transaction");
             logger.error("something went wrong when publishing positions \n\t {} to {}", positions.get(0), positions.get(positions.size()-1));
             return 0;
         }
-
 
 
     }
@@ -178,6 +180,7 @@ public class GoogleCloudStorage {
 //                logger.info("consumed message {}", contentBuilder.toString());
             }
         } catch (Exception e) {
+            meterRegistry.counter("forbruk_nets_app_error_consumemessages", "error", "consume messages");
             logger.error("Error consuming messages: {}", e.getMessage());
             e.printStackTrace();
             throw new RuntimeException(e);

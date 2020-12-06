@@ -32,9 +32,11 @@ public class Scheduler {
             netsHandle.getAndHandleNetsFiles();
             netsHandle.endHandleNetsFiles();
         } catch (IOException e) {
+            meterRegistry.counter("forbruk_nets_app_error_scheduledtask_io", "error", "store handlenetstransactions");
             logger.info("Something went wrong in initializing netsHandle: {}", e.getMessage());
             e.printStackTrace();
         } catch (JSchException e) {
+            meterRegistry.counter("forbruk_nets_app_error_scheduledtask", "error", "store handlenetstransactions");
             logger.info("Something went wrong in initializing Jsch: {}", e.getMessage());
             e.printStackTrace();
         }

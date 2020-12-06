@@ -54,6 +54,7 @@ public class NetsHandle {
             /* handle files in path */
             sftpFileTransfer.fileList().forEach(this::handleFile);
         } catch (SftpException e) {
+            meterRegistry.counter("forbruk_nets_app_error_handlenetsfiles","error", "sftp").increment();
             logger.error("Sftp-feil: {}", e.toString());
         }
     }
@@ -74,11 +75,13 @@ public class NetsHandle {
             logger.info("read from bucket");
             googleCloudStorage.consumeMessages();
             logger.info("finished handled file");
-            meterRegistry.counter("forbruk_nets_app.files_handled", "filesTreated", "count").increment();
+            meterRegistry.counter("forbruk_nets_app_handle_files", "count", "filestreated").increment();
         } catch (SftpException e) {
+            meterRegistry.counter("forbruk_nets_app_error_handle_file_sftp", "error", "getfileinputstream");
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
         } catch (Exception e) {
+            meterRegistry.counter("forbruk_nets_app_error_handle_file", "error", "handle_file");
             logger.error("Error producing messages for {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
         }
