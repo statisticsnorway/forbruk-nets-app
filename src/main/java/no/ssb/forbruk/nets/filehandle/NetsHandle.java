@@ -4,11 +4,11 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
 import no.ssb.forbruk.nets.db.model.NetsRecord;
 import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
 import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
-import no.ssb.forbruk.nets.metrics.MetricsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,23 +37,24 @@ public class NetsHandle {
     @Value("${forbruk.nets.header}")
     String headerLine;
 
-    MetricsManager metricsManager;
+    @Autowired
+    MeterRegistry meterRegistry;
 
-    public void initialize(MetricsManager metricsManager) throws IOException, JSchException {
-        this.metricsManager = metricsManager;
-        this.sftpFileTransfer.initialize(metricsManager);
+    public void initialize() throws IOException, JSchException {
+        this.sftpFileTransfer.setupJsch();
         logger.info("sftpFileTransfer initialized");
-        this.googleCloudStorage.initialize(headerLine, metricsManager);
+        this.googleCloudStorage.initialize(headerLine);
         logger.info("googleCloudStorage initialized");
     }
 
-    @Timed(description = "Time handling files from nets", longTask = true)
+    @Timed(value = "forbruk_nets_app_handlenetsfiles", description = "Time handling files from nets", longTask = true)
     public void getAndHandleNetsFiles() {
         try {
             logger.info("find files and loop");
             /* handle files in path */
             sftpFileTransfer.fileList().forEach(this::handleFile);
         } catch (SftpException e) {
+            meterRegistry.counter("forbruk_nets_app_error_handlenetsfiles","error", "sftp").increment();
             logger.error("Sftp-feil: {}", e.toString());
         }
     }
@@ -74,11 +75,13 @@ public class NetsHandle {
             logger.info("read from bucket");
             googleCloudStorage.consumeMessages();
             logger.info("finished handled file");
-            metricsManager.trackCounterMetrics("forbruk_nets_app.file", 1, "filesTreated", "count");
+            meterRegistry.counter("forbruk_nets_app_handle_files", "count", "filestreated").increment();
         } catch (SftpException e) {
+            meterRegistry.counter("forbruk_nets_app_error_handle_file_sftp", "error", "getfileinputstream");
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
         } catch (Exception e) {
+            meterRegistry.counter("forbruk_nets_app_error_handle_file", "error", "handle_file");
             logger.error("Error producing messages for {}: {}", f.getFilename(), e.getMessage());
             e.printStackTrace();
         }

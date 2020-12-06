@@ -6,7 +6,7 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
-import no.ssb.forbruk.nets.metrics.MetricsManager;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Vector;
@@ -53,41 +52,27 @@ public class SftpFileTransfer {
     private static ChannelSftp channelSftp;
     private Session jschSession;
 
-    private MetricsManager metricsManager;
-
     @Autowired
-    public void setMetricsManager(MetricsManager metricsManager) {
-        this.metricsManager = metricsManager;
-    }
+    private MeterRegistry meterRegistry;
 
-
-    public void initialize(MetricsManager metricsManager) throws IOException, JSchException {
-        logger.info("SESSION_TIMEOUT: {}", SESSION_TIMEOUT);
-        this.metricsManager = metricsManager;
-        this.setupJsch();
-    }
-
-    @Timed(description = "Time get one list of files from nets")
+    @Timed(value="forbruk_nets_app_filelist", description = "Time get one list of files from nets")
     public Collection<ChannelSftp.LsEntry> fileList() throws SftpException {
         Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(WORKDIR);
         Collection<ChannelSftp.LsEntry> fileList = Collections.list(files.elements());
-        metricsManager.trackCounterMetrics("forbruk_nets_app.files", fileList.size(), "filesFromNets", "count");
+        meterRegistry.counter("forbruk_nets_app.files", "filesFromNets", "count").increment(fileList.size());
         return fileList;
     }
 
-    @Timed(description = "Time get one file from nets")
+    @Timed(value = "forbruk_nets_app_readonefile", description = "Time get one file from nets")
     public InputStream getFileInputStream(ChannelSftp.LsEntry f) throws SftpException {
         return channelSftp.get(WORKDIR + "/" + f.getFilename());
     }
 
-    public void setupJsch() throws JSchException, IOException {
+    public boolean setupJsch() throws JSchException, IOException {
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
 
         String tmpPrivateKeyFile = createTemporaryPrivateKeyFile();
-
-        String privKey = new String(Files.readAllBytes(Paths.get(tmpPrivateKeyFile)));
-        logger.info("privKey:{} ... {}", privKey.substring(0,30), privKey.substring(privKey.length() - 50));
 
         jsch.addIdentity(tmpPrivateKeyFile, passphrase);
         jschSession = jsch.getSession(USER, HOST, PORT);
@@ -99,6 +84,7 @@ public class SftpFileTransfer {
 //        logger.info("delete tmp file if exists ({})", Files.exists(Path.of(tmpPrivateKeyFile)));
         Files.deleteIfExists(Path.of(tmpPrivateKeyFile));
         logger.info("Connected?: {}", channelSftp.isConnected());
+        return channelSftp.isConnected();
     }
 
 

@@ -2,8 +2,8 @@ package no.ssb.forbruk.nets.controller;
 
 import com.jcraft.jsch.JSchException;
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
 import no.ssb.forbruk.nets.filehandle.NetsHandle;
-import no.ssb.forbruk.nets.metrics.MetricsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,13 +23,13 @@ public class NetsController {
     NetsHandle netsHandle;
 
     @Autowired
-    MetricsManager metricsManager;
+    MeterRegistry metricsRegistry;
 
     @GetMapping("/netsfiles")
-    @Timed(description = "Time spent running controller")
+    @Timed(value="forbruk_nets_app_controller", description = "Time spent running controller")
     public ResponseEntity<String> handleNetsFiles() {
         try {
-            netsHandle.initialize(metricsManager);
+            netsHandle.initialize();
             logger.info("Called netsfiles - " + LocalDateTime.now());
 //            netsHandle.getAndHandleNetsFiles();
             netsHandle.endHandleNetsFiles();
