@@ -95,8 +95,9 @@ public class NetsHandle {
 
     private void printDb() {
         List<NetsRecord> dbrecs = netsRecordRepository.findAll();
-        dbrecs.forEach(d -> logger.info(d.toString()));
-    }
+        logger.info("antall rader i base: {}", dbrecs.size());
+//        dbrecs.forEach(d -> logger.info(d.toString()));
+        }
 
 
 }
