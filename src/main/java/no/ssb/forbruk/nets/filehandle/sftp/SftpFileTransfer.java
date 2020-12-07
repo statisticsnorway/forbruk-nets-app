@@ -58,6 +58,7 @@ public class SftpFileTransfer {
     @Timed(value="forbruk_nets_app_filelist", description = "Time get one list of files from nets")
     public Collection<ChannelSftp.LsEntry> fileList() throws SftpException {
         Vector<ChannelSftp.LsEntry> files = (Vector<ChannelSftp.LsEntry>)channelSftp.ls(WORKDIR);
+        logger.info("number of files in {}: {}", WORKDIR, files.size());
         Collection<ChannelSftp.LsEntry> fileList = Collections.list(files.elements());
         meterRegistry.counter("forbruk_nets_app.files", "filesFromNets", "count").increment(fileList.size());
         return fileList;

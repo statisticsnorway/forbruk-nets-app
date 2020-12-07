@@ -31,16 +31,18 @@ public class NetsController {
         try {
             netsHandle.initialize();
             logger.info("Called netsfiles - " + LocalDateTime.now());
-//            netsHandle.getAndHandleNetsFiles();
+            netsHandle.getAndHandleNetsFiles();
             netsHandle.endHandleNetsFiles();
+            return new ResponseEntity<>("Files treated", HttpStatus.OK);
         } catch (IOException e) {
             logger.info("Something went wrong in initializing netsHandle: {}", e.getMessage());
             e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong in initializing netsHandle", HttpStatus.EXPECTATION_FAILED);
         } catch (JSchException e) {
             logger.info("Something went wrong in initializing Jsch: {}", e.getMessage());
             e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong in initializing Jsch", HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>("Files treated", HttpStatus.OK);
     }
 
 
