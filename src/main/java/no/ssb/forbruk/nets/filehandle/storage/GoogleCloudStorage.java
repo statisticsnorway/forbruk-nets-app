@@ -55,7 +55,7 @@ public class GoogleCloudStorage {
     @Value("${google.storage.encryption}")
     private String encrypt;
 
-    Encryption encryption;
+    final Encryption encryption = new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
 
     @Autowired
     MeterRegistry meterRegistry;
@@ -72,21 +72,12 @@ public class GoogleCloudStorage {
 
     @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
     public void initialize(String headerLine) {
-        encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
-//        logger.info(encryption.toString());
-//        logger.info("storageProvider: {}", storageProvider);
-//        logger.info("storageBucket: {}", storageBucket);
-//        logger.info("localTemFolder: {}", localTemFolder);
-//        logger.info("credentialProvider: {}", credentialProvider);
-//        logger.info("storageSecretFile: {}", storageSecretFile);
-//        logger.info("rawdataTopic: {}", rawdataTopic);
-
         setConfiguration(storageProvider);
         rawdataClient = ProviderConfigurator.configure(configuration,
                 storageProvider, RawdataClientInitializer.class);
 //        logger.info("rawdataClient: {}", rawdataClient.toString());
 
-        headerColumns = headerLine.split(";");
+        headerColumns = headerLine.split(";"); // Todo: Ta en titt på denne. Injectes utenfra, brukes her...
 //        this.metricsManager = metricsManager;
     }
 
@@ -209,7 +200,6 @@ public class GoogleCloudStorage {
                         "filesystem.storage-folder", storageBucket
                         )
                 ;
-//                configuration.forEach((k,v) -> logger.info("config {}:{}", k, v));
     }
 
 }

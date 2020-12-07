@@ -1,10 +1,6 @@
 package no.ssb.forbruk.nets.db.model;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -18,6 +14,7 @@ import java.time.LocalDateTime;
 @ToString
 @Data
 @Entity
+@Builder
 public class NetsRecord {
 
     private static final String ID_COLUMN = "NETS_REC_ID";

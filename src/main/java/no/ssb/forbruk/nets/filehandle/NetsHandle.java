@@ -5,6 +5,7 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.val;
 import no.ssb.forbruk.nets.db.model.NetsRecord;
 import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
 import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
@@ -41,9 +42,9 @@ public class NetsHandle {
     MeterRegistry meterRegistry;
 
     public void initialize() throws IOException, JSchException {
-        this.sftpFileTransfer.setupJsch();
+        sftpFileTransfer.setupJsch();
         logger.info("sftpFileTransfer initialized");
-        this.googleCloudStorage.initialize(headerLine);
+        googleCloudStorage.initialize(headerLine);
         logger.info("googleCloudStorage initialized");
     }
 
@@ -90,13 +91,13 @@ public class NetsHandle {
 
     private void saveFileRecord(String content) {
         logger.info("file in path: {}", content);
-        NetsRecord nr = new NetsRecord();
-        nr.setContent(content);
-        nr.setTimestamp(LocalDateTime.now());
-        NetsRecord saved = netsRecordRepository.save(nr);
+        netsRecordRepository.save(NetsRecord.builder()
+                .content(content)
+                .timestamp(LocalDateTime.now())
+                .build());
     }
 
-    private void printDb() {
+    private void printDb() { // TODO: Remove this method
         List<NetsRecord> dbrecs = netsRecordRepository.findAll();
         logger.info("antall rader i base: {}", dbrecs.size());
 //        dbrecs.forEach(d -> logger.info(d.toString()));
