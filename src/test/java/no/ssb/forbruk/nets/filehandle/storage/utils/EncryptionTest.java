@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyString;
 
 public class EncryptionTest {
 
@@ -17,7 +18,8 @@ public class EncryptionTest {
 
     @Test
     void testEncrypt_doEncrypt_works() {
-        encryption = new Encryption(ENCRYPT_KEY, ENCRYPT_SALT,"true");
+        encryption = new Encryption();
+        encryption.generateSecretKey(ENCRYPT_KEY, ENCRYPT_SALT);
 
         byte[] encrypted = encryption.tryEncryptContent(TEST_STRING.getBytes());
         assertNotNull(encrypted, "Encrypted text schould not be null");
@@ -26,7 +28,8 @@ public class EncryptionTest {
 
     @Test
     void testEncrypt_notEncrypt_works() {
-        encryption = new Encryption(ENCRYPT_KEY, ENCRYPT_SALT,"false");
+        encryption = new Encryption();
+        encryption.generateSecretKey(ENCRYPT_KEY, ENCRYPT_SALT);
 
         byte[] encrypted = encryption.tryEncryptContent(TEST_STRING.getBytes());
         assertNotNull(encrypted, "Encrypted text schould not be null");
@@ -35,7 +38,8 @@ public class EncryptionTest {
 
     @Test
     void testDecrypt_doEncrypt_works() {
-        encryption = new Encryption(ENCRYPT_KEY, ENCRYPT_SALT,"true");
+        encryption = new Encryption();
+        encryption.generateSecretKey(ENCRYPT_KEY, ENCRYPT_SALT);
 
         byte[] encrypted = encryption.tryEncryptContent(TEST_STRING.getBytes());
         byte[] decrypted = encryption.tryDecryptContent(encrypted);
@@ -47,7 +51,8 @@ public class EncryptionTest {
 
     @Test
     void testDecrypt_notEncrypt_works() {
-        encryption = new Encryption(ENCRYPT_KEY, ENCRYPT_SALT,"false");
+        encryption = new Encryption();
+        encryption.generateSecretKey(ENCRYPT_KEY, ENCRYPT_SALT);
 
         byte[] encrypted = encryption.tryEncryptContent(TEST_STRING.getBytes());
         byte[] decrypted = encryption.tryDecryptContent(encrypted);

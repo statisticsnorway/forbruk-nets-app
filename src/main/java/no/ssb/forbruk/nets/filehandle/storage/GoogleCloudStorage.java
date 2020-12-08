@@ -4,7 +4,10 @@ package no.ssb.forbruk.nets.filehandle.storage;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Manifest;
 import no.ssb.forbruk.nets.filehandle.storage.utils.ULIDGenerator;
@@ -48,24 +51,22 @@ public class GoogleCloudStorage {
     @Value("${google.storage.buffer.lines}")
     int maxBufferLines;
 
-    @Value("#{environment.forbruk_nets_encryption_key}")
-    private String encryptionKey;
-    @Value("#{environment.forbruk_nets_encryption_salt}")
-    private String encryptionSalt;
-    @Value("${google.storage.encryption}")
-    private String encrypt;
-
-
     @Value("${forbruk.nets.header}")
     String headerLine;
 
-    Encryption encryption; //= new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
+//    @Setter
+//    Encryption encryption; //= new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
+    @NonNull
+    final Encryption encryption = new Encryption();
 
-    private final MeterRegistry meterRegistry;
+    @NonNull
+    final MeterRegistry meterRegistry;
 
 
     Map<String, String> configuration;
+    @Setter
     static RawdataClient rawdataClient;
+    @Setter
     static String [] headerColumns;
 
     final static String avrofileMaxSeconds = "10";
@@ -75,7 +76,7 @@ public class GoogleCloudStorage {
 
     @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
     public void initialize() {
-        encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
+        encryption.setSecretKey();
         setConfiguration(storageProvider);
         rawdataClient = ProviderConfigurator.configure(configuration,
                 storageProvider, RawdataClientInitializer.class);

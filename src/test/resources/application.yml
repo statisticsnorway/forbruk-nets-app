@@ -7,7 +7,7 @@ google:
   storage:
     provider:
       bucket: "tmp/rawdata/nets"
-      topic: test-transactions
+      topic: "test-transactions"
     secret:
       keyfile:
     credential:
