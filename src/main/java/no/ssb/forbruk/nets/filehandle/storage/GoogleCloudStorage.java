@@ -4,6 +4,7 @@ package no.ssb.forbruk.nets.filehandle.storage;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Manifest;
 import no.ssb.forbruk.nets.filehandle.storage.utils.ULIDGenerator;
@@ -15,12 +16,10 @@ import no.ssb.rawdata.api.RawdataProducer;
 import no.ssb.service.provider.api.ProviderConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -30,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
+@RequiredArgsConstructor
 public class GoogleCloudStorage {
     private static final Logger logger = LoggerFactory.getLogger(GoogleCloudStorage.class);
 
@@ -55,10 +55,13 @@ public class GoogleCloudStorage {
     @Value("${google.storage.encryption}")
     private String encrypt;
 
-    final Encryption encryption = new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
 
-    @Autowired
-    MeterRegistry meterRegistry;
+    @Value("${forbruk.nets.header}")
+    String headerLine;
+
+    Encryption encryption; //= new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
+
+    private final MeterRegistry meterRegistry;
 
 
     Map<String, String> configuration;
@@ -71,46 +74,39 @@ public class GoogleCloudStorage {
 
 
     @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
-    public void initialize(String headerLine) {
+    public void initialize() {
+        encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
         setConfiguration(storageProvider);
         rawdataClient = ProviderConfigurator.configure(configuration,
                 storageProvider, RawdataClientInitializer.class);
-//        logger.info("rawdataClient: {}", rawdataClient.toString());
 
         headerColumns = headerLine.split(";"); // Todo: Ta en titt på denne. Injectes utenfra, brukes her...
-//        this.metricsManager = metricsManager;
     }
 
     @Timed(value="forbruk_nets_app_producemessages", description="Time store transactions for one file")
     public int produceMessages(InputStream inputStream, String filename) {
+
         int totalTransactions = 0;
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            AtomicBoolean skipHeader = new AtomicBoolean(false);
-            List<String> positions = new ArrayList<>();
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            final AtomicBoolean skipHeader = new AtomicBoolean(false);
+            final List<String> positions = new ArrayList<>();
             String line;
             while ((line = reader.readLine()) != null) {
                 try {
                     if (skipHeader.getAndSet(true)) {
+                        //create unique position for fileline
                         String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
 
-                        byte[] manifestJson = Manifest.generateManifest(
-                                producer.topic(), position, line.length(),
-                                headerColumns, filename);
-
-                        RawdataMessage.Builder messageBuilder = producer.builder();
-                        messageBuilder.position(position);
-
-                        messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
-                        messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
-                        producer.buffer(messageBuilder);
-
+                        //create message and buffer it
+                        producer.buffer(
+                                createMessageWithManifestAndEntry(filename, producer, line, position));
                         positions.add(position);
 
                         // publish every maxBufferLines lines
                         if (positions.size() >= maxBufferLines) {
                             totalTransactions += publishPositions(producer, positions);
-                            positions = new ArrayList<>();
+                            positions.clear();
                         }
                     }
                 } catch (Exception e) {
@@ -131,6 +127,19 @@ public class GoogleCloudStorage {
         return totalTransactions;
     }
 
+    private RawdataMessage.Builder createMessageWithManifestAndEntry(String filename, RawdataProducer producer, String line, String position) {
+        byte[] manifestJson = Manifest.generateManifest(
+                producer.topic(), position, line.length(),
+                headerColumns, filename);
+
+        RawdataMessage.Builder messageBuilder = producer.builder();
+        messageBuilder.position(position);
+
+        messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
+        messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
+        return messageBuilder;
+    }
+
     @Timed(value="forbruk_nets_app_publishpositions", description = "publish positions")
     protected int publishPositions(RawdataProducer producer, List<String> positions) {
         try {
@@ -140,7 +149,7 @@ public class GoogleCloudStorage {
             meterRegistry.counter("forbruk_nets_app_total_transactions", "count", "transactions stored").increment(positions.size());
             return positions.size();
         } catch (Exception e) {
-            meterRegistry.counter("forbruk_nets_app_error_publischpositions", "error", "store transaction");
+            meterRegistry.counter("forbruk_nets_app_error_publishpositions", "error", "store transaction");
             logger.error("something went wrong when publishing positions \n\t {} to {}", positions.get(0), positions.get(positions.size()-1));
             return 0;
         }

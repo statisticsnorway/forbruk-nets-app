@@ -5,6 +5,8 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 import no.ssb.forbruk.nets.db.model.NetsRecord;
 import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
@@ -12,8 +14,6 @@ import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -22,29 +22,27 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 @Timed
 public class NetsHandle {
     private static final Logger logger = LoggerFactory.getLogger(NetsHandle.class);
 
-    @Autowired
-    SftpFileTransfer sftpFileTransfer;
+    @NonNull
+    private final SftpFileTransfer sftpFileTransfer;
 
-    @Autowired
-    GoogleCloudStorage googleCloudStorage;
+    @NonNull
+    private final GoogleCloudStorage googleCloudStorage;
 
-    @Autowired
-    NetsRecordRepository netsRecordRepository;
+    @NonNull
+    private final NetsRecordRepository netsRecordRepository;
 
-    @Value("${forbruk.nets.header}")
-    String headerLine;
-
-    @Autowired
-    MeterRegistry meterRegistry;
+    @NonNull
+    final MeterRegistry meterRegistry;
 
     public void initialize() throws IOException, JSchException {
         sftpFileTransfer.setupJsch();
         logger.info("sftpFileTransfer initialized");
-        googleCloudStorage.initialize(headerLine);
+        googleCloudStorage.initialize();
         logger.info("googleCloudStorage initialized");
     }
 

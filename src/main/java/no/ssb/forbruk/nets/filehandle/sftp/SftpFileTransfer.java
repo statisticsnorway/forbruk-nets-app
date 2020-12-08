@@ -7,9 +7,10 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,7 @@ import java.util.Vector;
 
 
 @Service
+@RequiredArgsConstructor
 public class SftpFileTransfer {
     private static final Logger logger = LoggerFactory.getLogger(SftpFileTransfer.class);
 
@@ -52,7 +54,7 @@ public class SftpFileTransfer {
     private static ChannelSftp channelSftp;
     private Session jschSession;
 
-    @Autowired
+    @NonNull
     private MeterRegistry meterRegistry;
 
     @Timed(value="forbruk_nets_app_filelist", description = "Time get one list of files from nets")

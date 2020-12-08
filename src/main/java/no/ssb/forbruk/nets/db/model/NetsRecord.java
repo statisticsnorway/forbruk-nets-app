@@ -22,7 +22,7 @@ public class NetsRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_" + ID_COLUMN)
     @SequenceGenerator(name = "SEQ_" + ID_COLUMN, sequenceName = "SEQ_" + ID_COLUMN, allocationSize = 1)
-    @NonNull
+//    @NonNull
     private Long id;
     @NonNull
     private String content;
