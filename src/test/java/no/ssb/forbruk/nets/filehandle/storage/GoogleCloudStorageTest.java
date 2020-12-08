@@ -21,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,11 +33,11 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest
 public class GoogleCloudStorageTest {
     private static final Logger logger = LoggerFactory.getLogger(GoogleCloudStorageTest.class);
 
-    private MeterRegistry meterRegistry = new SimpleMeterRegistry();
+    @Mock
+    private MeterRegistry meterRegistry;
 
     @Mock
     private Encryption encryption;
@@ -69,6 +70,8 @@ public class GoogleCloudStorageTest {
 
         when(encryption.generateSecretKey(anyString(), anyString())).thenReturn("abc".getBytes());
 
+        ReflectionTestUtils.setField(googleCloudStorage, "rawdataTopic", "test_transactions1");
+        ReflectionTestUtils.setField(googleCloudStorage, "maxBufferLines", 3);
         InputStream inputStream = new FileInputStream(new File("src/test/resources/testNetsResponse.csv"));
         logger.info("inputstream: {}", inputStream.available());
 
