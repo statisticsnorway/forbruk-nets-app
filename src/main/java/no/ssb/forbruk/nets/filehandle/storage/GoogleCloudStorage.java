@@ -48,18 +48,11 @@ public class GoogleCloudStorage {
     @Value("${google.storage.buffer.lines}")
     int maxBufferLines;
 
-    @Value("#{environment.forbruk_nets_encryption_key}")
-    private String encryptionKey;
-    @Value("#{environment.forbruk_nets_encryption_salt}")
-    private String encryptionSalt;
-    @Value("${google.storage.encryption}")
-    private String encrypt;
-
-
     @Value("${forbruk.nets.header}")
     String headerLine;
 
-    Encryption encryption; //= new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
+
+    Encryption encryption = new Encryption(); //= new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
 
     private final MeterRegistry meterRegistry;
 
@@ -75,7 +68,10 @@ public class GoogleCloudStorage {
 
     @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
     public void initialize() {
-        encryption = new Encryption(encryptionKey, encryptionSalt, encrypt);
+        logger.info("initialize");
+        encryption.setSecretKey();
+
+        logger.info("set configuration");
         setConfiguration(storageProvider);
         rawdataClient = ProviderConfigurator.configure(configuration,
                 storageProvider, RawdataClientInitializer.class);
