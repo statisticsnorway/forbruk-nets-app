@@ -66,9 +66,10 @@ public class Encryption {
     @Override
     public String toString() {
         return "Encryption{" +
-                "encryptionKey=" + (encryptionKey != null ? encryptionKey.length() : " null") +
-                ", encryptionSalt=" + (encryptionSalt  != null ? encryptionSalt.length() : " null") +
+                "encryptionKey=" + (encryptionKey != null ? encryptionKey.substring(2,3) : " null") +
+                ", encryptionSalt=" + (encryptionSalt  != null ? encryptionSalt.substring(1,3) : " null") +
                 ", encrypt=" + encrypt +
+                ", secretKey=" + new String(secretKey).substring(3,5) +
                 '}';
     }
 }

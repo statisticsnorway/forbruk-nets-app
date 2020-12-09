@@ -87,6 +87,7 @@ public class GoogleCloudStorage {
     @Timed(value="forbruk_nets_app_producemessages", description="Time store transactions for one file")
     public int produceMessages(InputStream inputStream, String filename) {
 
+        logger.info("config: {}", configuration);
         int totalTransactions = 0;
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
