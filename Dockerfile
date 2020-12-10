@@ -1,4 +1,4 @@
-FROM azul/zulu-openjdk:15
+FROM maven:3.6-openjdk-15 as build
 
 # Add the service itself
 COPY ./target/forbruk-nets-app.jar /usr/share/forbruk/

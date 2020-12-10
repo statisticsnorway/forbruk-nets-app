@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class EncryptionTest {
     private static final Logger logger = LoggerFactory.getLogger(EncryptionTest.class);
 
-
     @NonNull
     final Encryption encryption = new Encryption();
 
