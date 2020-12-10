@@ -28,13 +28,13 @@ public class NetsHandle {
     private static final Logger logger = LoggerFactory.getLogger(NetsHandle.class);
 
     @NonNull
-    private final SftpFileTransfer sftpFileTransfer;
+    final SftpFileTransfer sftpFileTransfer;
 
     @NonNull
-    private final GoogleCloudStorage googleCloudStorage;
+    final GoogleCloudStorage googleCloudStorage;
 
     @NonNull
-    private final NetsRecordRepository netsRecordRepository;
+    final NetsRecordRepository netsRecordRepository;
 
     @NonNull
     final MeterRegistry meterRegistry;

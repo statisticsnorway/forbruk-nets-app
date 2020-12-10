@@ -20,6 +20,7 @@
 		<logback.contrib.version>0.1.5</logback.contrib.version>
 		<metrics.version>0.5.1.RELEASE</metrics.version>
 		<prom.version>0.9.0</prom.version>
+		<mockito.version>3.6.28</mockito.version>
 	</properties>
 
 	<profiles>
@@ -93,10 +94,10 @@
 	</profiles>
 
 	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter</artifactId>-->
+<!--		</dependency>-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -110,11 +111,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>ch.qos.logback</groupId>
-			<artifactId>logback-classic</artifactId>
-			<version>1.2.3</version>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>ch.qos.logback</groupId>-->
+<!--			<artifactId>logback-classic</artifactId>-->
+<!--			<version>1.2.3</version>-->
+<!--		</dependency>-->
 
 		<!-- ch.qos.logback.contrib.jackson.JacksonJsonFormatter -->
 		<dependency>
@@ -144,12 +145,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
-
-<!--		<dependency>-->
-<!--			<groupId>com.jayway.jsonpath</groupId>-->
-<!--			<artifactId>json-path</artifactId>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
 
 		<!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-secretmanager -->
 		<dependency>
@@ -194,29 +189,24 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.jcraft</groupId>
-			<artifactId>jsch</artifactId>
-			<version>0.1.55</version>
-		</dependency>
-
-		<dependency>
 			<groupId>no.ssb.dapla.storage</groupId>
 			<artifactId>dapla-storage-client</artifactId>
 			<version>4.2.0</version>
 		</dependency>
 
-		<dependency>
-			<groupId>no.ssb.config</groupId>
-			<artifactId>dynamic-configuration</artifactId>
-			<version>0.4</version>
-			<scope>compile</scope>
-		</dependency>
 
-		<dependency>
-			<groupId>com.google.cloud</groupId>
-			<artifactId>google-cloud-storage</artifactId>
-			<version>1.113.2</version>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>no.ssb.config</groupId>-->
+<!--			<artifactId>dynamic-configuration</artifactId>-->
+<!--			<version>0.4</version>-->
+<!--			<scope>compile</scope>-->
+<!--		</dependency>-->
+
+<!--		<dependency>-->
+<!--			<groupId>com.google.cloud</groupId>-->
+<!--			<artifactId>google-cloud-storage</artifactId>-->
+<!--			<version>1.113.2</version>-->
+<!--		</dependency>-->
 
 
 		<dependency>
@@ -233,10 +223,26 @@
 					<groupId>org.checkerframework</groupId>
 					<artifactId>checker-compat-qual</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>com.google.cloud</groupId>
+					<artifactId>google-cloud-storage</artifactId>
+				</exclusion>
 			</exclusions>
 			<version>0.10-SNAPSHOT</version>
 		</dependency>
-
+		<!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>${mockito.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-junit-jupiter</artifactId>
+			<version>${mockito.version}</version>
+			<scope>test</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
