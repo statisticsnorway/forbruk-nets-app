@@ -3,6 +3,7 @@ package no.ssb.forbruk.nets.filehandle.storage;
 
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import lombok.NonNull;
@@ -63,10 +64,10 @@ public class GoogleCloudStorage {
     final MeterRegistry meterRegistry;
 
 
-    Map<String, String> configuration;
     @Setter
     static RawdataClient rawdataClient;
     @Setter
+    @Getter
     static String [] headerColumns;
 
     final static String avrofileMaxSeconds = "10";
@@ -77,17 +78,15 @@ public class GoogleCloudStorage {
     @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
     public void initialize() {
         encryption.setSecretKey();
-        setConfiguration(storageProvider);
-        rawdataClient = ProviderConfigurator.configure(configuration,
+        rawdataClient = ProviderConfigurator.configure(configuration(storageProvider),
                 storageProvider, RawdataClientInitializer.class);
 
-        headerColumns = headerLine.split(";"); // Todo: Ta en titt på denne. Injectes utenfra, brukes her...
+        headerColumns = headerLine.split(";");
     }
 
     @Timed(value="forbruk_nets_app_producemessages", description="Time store transactions for one file")
     public int produceMessages(InputStream inputStream, String filename) {
 
-        logger.info("config: {}", configuration);
         int totalTransactions = 0;
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -148,11 +147,11 @@ public class GoogleCloudStorage {
             logger.info("publish {} positions", positions.size());
             producer.publish(positions.toArray(new String[0]));
             meterRegistry.gauge("forbruk_nets_app_transactions", positions.size());
-            meterRegistry.counter("forbruk_nets_app_total_transactions", "count", "transactions stored").increment(positions.size());
+            Counter c = meterRegistry.counter("forbruk_nets_app_total_transactions", "count", "transactions stored");//.increment(positions.size());
             return positions.size();
         } catch (Exception e) {
             meterRegistry.counter("forbruk_nets_app_error_publishpositions", "error", "store transaction");
-            logger.error("something went wrong when publishing positions \n\t {} to {}", positions.get(0), positions.get(positions.size()-1));
+            logger.error("something went wrong when publishing positions \n\t {} to {}, {}", positions.get(0), positions.get(positions.size()-1), e.getMessage());
             return 0;
         }
 
@@ -190,8 +189,8 @@ public class GoogleCloudStorage {
     }
 
 
-    private void setConfiguration(String storageProvider) {
-        configuration = "gcs".equals(storageProvider) ?
+    private Map<String, String> configuration(String storageProvider) {
+        return "gcs".equals(storageProvider) ?
                 Map.of(
                         "local-temp-folder", localTemFolder,
                         "avro-file.max.seconds", avrofileMaxSeconds,

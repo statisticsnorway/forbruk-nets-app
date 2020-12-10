@@ -4,6 +4,7 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.SftpException;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
 import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
@@ -57,6 +58,10 @@ public class NetsHandleTest {
         when(sftpFileTransfer.fileList()).thenReturn(fileList);
         when(sftpFileTransfer.getFileInputStream(any())).thenReturn(inputStream);
         when(googleCloudStorage.produceMessages(any(), anyString())).thenReturn(5);
+
+        Counter counter = meterRegistry.counter("test");
+        when(meterRegistry.counter(anyString(), anyCollection())).thenReturn(counter);//.increment(anyInt());
+        when(meterRegistry.gauge(anyString(), anyInt())).thenReturn(1);
 
 
         netsHandle.getAndHandleNetsFiles();

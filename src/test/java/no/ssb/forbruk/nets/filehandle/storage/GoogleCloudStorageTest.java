@@ -1,5 +1,6 @@
 package no.ssb.forbruk.nets.filehandle.storage;
 
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 //import org.mockito.Mock;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -56,14 +58,14 @@ public class GoogleCloudStorageTest {
 
     final static String headerLine = "TRANSAKSJONSDATO;TRANSAKSJONSTID;BRUKERSTED;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT;BR_STED_NAVN_TERM;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN";
 
-//    final static Map configFileSystem = Map.of(
-//            "local-temp-folder", "local-temp-test",
-//            "avro-file.max.seconds","10",
-//            "avro-file.max.bytes", "10485760",
-//            "avro-file.sync.interval", "524288",
-//            "listing.min-interval-seconds", "0",
-//            "filesystem.storage-folder", "tmp/rawdata/nets"
-//    );
+    final static Map configFileSystem = Map.of(
+            "local-temp-folder", "local-temp-test",
+            "avro-file.max.seconds","10",
+            "avro-file.max.bytes", "10485760",
+            "avro-file.sync.interval", "524288",
+            "listing.min-interval-seconds", "0",
+            "filesystem.storage-folder", "tmp/rawdata/nets"
+    );
 
     final static Map configGcs = Map.of(
             "local-temp-folder", "local-temp-test",
@@ -72,21 +74,20 @@ public class GoogleCloudStorageTest {
             "avro-file.sync.interval", "524288",
             "gcs.bucket-name", "nets-rawdata-staging-transactions",
             "gcs.listing.min-interval-seconds", "3",
-            "gcs.credential-provider", "compute-engine",
-            "gcs.service-account.key-file", new String()
+            "gcs.credential-provider", "service-account",
+            "gcs.service-account.key-file", "C://var//appdata//forbruk//ssb-team-forbruk-staging-d569602b5f9f.json"
     );
 
     @Test
     public void test() throws IOException {
         googleCloudStorage.setRawdataClient(
-                ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
+                ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
         googleCloudStorage.setHeaderColumns((headerLine).split(";"));
 
-        logger.info("configGcs: {}", configGcs);
-
         doNothing().when(encryption).setSecretKey();
-
-        when(meterRegistry.counter(anyString(), anyCollection())).thenReturn(null);
+        Counter counter = meterRegistry.counter("test");
+        when(meterRegistry.counter(anyString(), anyCollection())).thenReturn(counter);//.increment(anyInt());
+        when(meterRegistry.gauge(anyString(), anyInt())).thenReturn(1);
 
         ReflectionTestUtils.setField(googleCloudStorage, "rawdataTopic", "test_transactions1");
         ReflectionTestUtils.setField(googleCloudStorage, "maxBufferLines", 3);
