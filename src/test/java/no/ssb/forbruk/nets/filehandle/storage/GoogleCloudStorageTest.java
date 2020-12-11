@@ -82,8 +82,8 @@ public class GoogleCloudStorageTest {
     public void test() throws IOException {
 
         googleCloudStorage.setRawdataClient(
-//                ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
-        ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
+                ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
+//                ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
         googleCloudStorage.setHeaderColumns((headerLine).split(";"));
 
         doNothing().when(encryption).setSecretKey();
