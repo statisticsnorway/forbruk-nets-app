@@ -1,11 +1,14 @@
 package no.ssb.forbruk.nets.filehandle.storage;
 
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
+import no.ssb.rawdata.api.RawdataConsumer;
+import no.ssb.rawdata.api.RawdataMessage;
 import no.ssb.service.provider.api.ProviderConfigurator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +36,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -49,12 +53,6 @@ public class GoogleCloudStorageTest {
     @InjectMocks
     private GoogleCloudStorage googleCloudStorage;
 
-//    final static String avrofileMaxSeconds = "10";
-//    final static String avrofileMaxBytes = "10485760";
-//    final static String avrofileSyncInterval =  "524288";
-//    final static String storageBucket = "tmp/rawdata/nets";
-//    final static String localTemFolder = "local-temp-test";
-//    final static String storageProvider = "filesystem";
 
     final static String headerLine = "TRANSAKSJONSDATO;TRANSAKSJONSTID;BRUKERSTED;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT;BR_STED_NAVN_TERM;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN";
 
@@ -78,24 +76,66 @@ public class GoogleCloudStorageTest {
             "gcs.service-account.key-file", "C://var//appdata//forbruk//ssb-team-forbruk-staging-d569602b5f9f.json"
     );
 
+    String RAWDATA_TOPIC = "rawdataTopic";
+
     @Test
     public void test() throws IOException {
+
         googleCloudStorage.setRawdataClient(
-                ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
+//                ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
+        ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
         googleCloudStorage.setHeaderColumns((headerLine).split(";"));
 
         doNothing().when(encryption).setSecretKey();
         Counter counter = meterRegistry.counter("test");
-        when(meterRegistry.counter(anyString(), anyCollection())).thenReturn(counter);//.increment(anyInt());
+        when(meterRegistry.counter(anyString(), anyCollection())).thenReturn(counter);
         when(meterRegistry.gauge(anyString(), anyInt())).thenReturn(1);
 
-        ReflectionTestUtils.setField(googleCloudStorage, "rawdataTopic", "test_transactions1");
+        ReflectionTestUtils.setField(googleCloudStorage, "rawdataTopic", RAWDATA_TOPIC);
         ReflectionTestUtils.setField(googleCloudStorage, "maxBufferLines", 3);
         InputStream inputStream = new FileInputStream(new File("src/test/resources/testNetsResponse.csv"));
         logger.info("inputstream: {}", inputStream.available());
 
+        int antConsumedPre = consumeMessages(googleCloudStorage.getRawdataClient());
+
         int antTransactions = googleCloudStorage.produceMessages(inputStream, "test.csv");
         assertEquals(9, antTransactions);
+        logger.info("read from bucket");
+        int antConsumed = consumeMessages(googleCloudStorage.getRawdataClient());
+        logger.info("finished handled file");
+        assertEquals(antTransactions, antConsumed-antConsumedPre);
+
     }
+
+
+    private int consumeMessages(RawdataClient rawdataClient) {
+        int antConsumed = 0;
+        try (RawdataConsumer consumer = rawdataClient.consumer(RAWDATA_TOPIC)) {
+//            logger.info("consumer: {}", consumer.topic());
+            RawdataMessage message;
+            while ((message = consumer.receive(1, TimeUnit.SECONDS)) != null) {
+//                logger.info("message position: {}", message.position());
+                // print message
+                StringBuilder contentBuilder = new StringBuilder();
+                contentBuilder.append("\nposition: ").append(message.position());
+                for (String key : message.keys()) {
+//                    logger.info("key: {}", key);
+//                    logger.info("  message content for key {}: {}", key, new String(message.get(key)));
+                    contentBuilder
+                            .append("\n\t").append(key).append(" => ")
+                            .append(new String(message.get(key)));
+                }
+//                logger.info("consumed message {}", contentBuilder.toString());
+                antConsumed++;
+            }
+        } catch (Exception e) {
+            logger.error("Error consuming messages: {}", e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+        return antConsumed;
+    }
+
+
 
 }
