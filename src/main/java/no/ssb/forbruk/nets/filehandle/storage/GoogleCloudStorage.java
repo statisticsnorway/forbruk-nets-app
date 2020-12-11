@@ -64,10 +64,9 @@ public class GoogleCloudStorage {
     final MeterRegistry meterRegistry;
 
 
-    @Setter
+    @Setter @Getter
     static RawdataClient rawdataClient;
-    @Setter
-    @Getter
+    @Setter @Getter
     static String [] headerColumns;
 
     final static String avrofileMaxSeconds = "10";
@@ -158,35 +157,6 @@ public class GoogleCloudStorage {
 
     }
 
-
-    //TODO: Move this to test
-    @Timed(value="forbruk_nets_app_consumemessages", description="consume messages")
-    public void consumeMessages() {
-        try (RawdataConsumer consumer = rawdataClient.consumer(rawdataTopic)) {
-            logger.info("consumer: {}", consumer.topic());
-            RawdataMessage message;
-            while ((message = consumer.receive(1, TimeUnit.SECONDS)) != null) {
-//                logger.info("message position: {}", message.position());
-                // print message
-                StringBuilder contentBuilder = new StringBuilder();
-                contentBuilder.append("\nposition: ").append(message.position());
-                for (String key : message.keys()) {
-//                    logger.info("key: {}", key);
-//                    logger.info("  message content for key {}: {}", key, new String(message.get(key)));
-//                    logger.info("dekryptert mess: {}", new String(encryption.tryDecryptContent(message.get(key))));
-                    contentBuilder
-                            .append("\n\t").append(key).append(" => ")
-                            .append(new String(encryption.tryDecryptContent(message.get(key))));
-                }
-//                logger.info("consumed message {}", contentBuilder.toString());
-            }
-        } catch (Exception e) {
-            meterRegistry.counter("forbruk_nets_app_error_consumemessages", "error", "consume messages");
-            logger.error("Error consuming messages: {}", e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
 
 
     private Map<String, String> configuration(String storageProvider) {

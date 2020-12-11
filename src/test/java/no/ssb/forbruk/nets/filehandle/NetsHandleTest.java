@@ -2,19 +2,17 @@ package no.ssb.forbruk.nets.filehandle;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpATTRS;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
 import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
+import no.ssb.forbruk.nets.filehandle.storage.utils.TestUtilities;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.io.File;
@@ -50,7 +48,7 @@ public class NetsHandleTest {
     @Test
     public void testTest() throws IOException, SftpException, JSchException {
         InputStream inputStream = new FileInputStream(new File("src/test/resources/testNetsResponse.csv"));
-        ChannelSftp.LsEntry testfile = lsEntryWithGivenFilename("test.csv");
+        ChannelSftp.LsEntry testfile = TestUtilities.lsEntryWithGivenFilename("test.csv");
         Collection<ChannelSftp.LsEntry> fileList = new Vector<ChannelSftp.LsEntry>();
         fileList.add(testfile);
 
@@ -69,15 +67,6 @@ public class NetsHandleTest {
         assertEquals("a", "a");
 
 
-    }
-
-
-    private ChannelSftp.LsEntry lsEntryWithGivenFilename(String filename) {
-        ChannelSftp.LsEntry lsEntry = mock(ChannelSftp.LsEntry.class);
-        SftpATTRS attrs = mock(SftpATTRS.class);
-        when(lsEntry.getAttrs()).thenReturn(attrs);
-        when(lsEntry.getFilename()).thenReturn(filename);
-        return lsEntry;
     }
 
 }
