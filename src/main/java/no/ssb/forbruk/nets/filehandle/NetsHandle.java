@@ -70,10 +70,6 @@ public class NetsHandle {
             int totalTransactions = googleCloudStorage.produceMessages(inputStream, f.getFilename());
 
             saveFileRecord(totalTransactions + " transactions saved for " + f.getFilename());
-
-            logger.info("read from bucket");
-            googleCloudStorage.consumeMessages();
-            logger.info("finished handled file");
             meterRegistry.counter("forbruk_nets_app_handle_files", "count", "filestreated").increment();
         } catch (SftpException e) {
             meterRegistry.counter("forbruk_nets_app_error_handle_file_sftp", "error", "getfileinputstream");
