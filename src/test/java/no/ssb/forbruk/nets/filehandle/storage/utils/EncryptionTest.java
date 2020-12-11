@@ -66,7 +66,7 @@ public class EncryptionTest {
         ReflectionTestUtils.setField(encryption, "encryptionKey", ENCRYPT_KEY);
         ReflectionTestUtils.setField(encryption, "encryptionSalt", ENCRYPT_SALT);
         ReflectionTestUtils.setField(encryption, "encrypt", encrypt);
-        encryption.setSecretKey();
+        encryption.initialize();
         logger.info("encryption: {}", encryption.toString());
     }
 

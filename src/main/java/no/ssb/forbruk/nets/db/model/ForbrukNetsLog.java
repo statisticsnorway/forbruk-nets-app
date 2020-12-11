@@ -1,5 +1,6 @@
 package no.ssb.forbruk.nets.db.model;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.*;
 
 import javax.persistence.Entity;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Builder
-public class NetsRecord {
+public class ForbrukNetsLog {
 
     private static final String ID_COLUMN = "NETS_REC_ID";
 
@@ -25,8 +26,14 @@ public class NetsRecord {
 //    @NonNull
     private Long id;
     @NonNull
-    private String content;
-    @NonNull
     private LocalDateTime timestamp;
-
+    @NonNull
+    private String filename;
+    @NonNull
+    private String counted;
+    @NonNull
+    private Long number;
+    @NonNull
+    private String status;
 }
+

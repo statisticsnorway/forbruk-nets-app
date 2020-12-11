@@ -3,7 +3,9 @@ package no.ssb.forbruk.nets.filehandle.storage;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import no.ssb.forbruk.nets.db.model.service.ForbrukNetsLogService;
 import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
@@ -13,8 +15,12 @@ import no.ssb.service.provider.api.ProviderConfigurator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 //import org.mockito.Mock;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyIterable;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -50,6 +56,9 @@ public class GoogleCloudStorageTest {
     @Mock
     private Encryption encryption;
 
+    @Mock
+    private ForbrukNetsLogService forbrukNetsLogService;
+
     @InjectMocks
     private GoogleCloudStorage googleCloudStorage;
 
@@ -80,26 +89,45 @@ public class GoogleCloudStorageTest {
 
     @Test
     public void test() throws IOException {
-
+        //set googleCloudStorage's rawdataClient and headerColumns
         googleCloudStorage.setRawdataClient(
-                ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
-//                ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
+                // use filesystem when testing in local intelliJ
+                // ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
+                ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
         googleCloudStorage.setHeaderColumns((headerLine).split(";"));
 
-        doNothing().when(encryption).setSecretKey();
-        Counter counter = meterRegistry.counter("test");
-        when(meterRegistry.counter(anyString(), anyCollection())).thenReturn(counter);
+        //mock saving to database
+        doNothing().when(forbrukNetsLogService).saveLogOK(anyString(), anyString(), anyLong());
+        doNothing().when(forbrukNetsLogService).saveLogError(anyString(), anyString(), anyLong());
+
+        //mock metrics
+//        doNothing().when(meterRegistry.counter(anyString(), any(String[].class))).increment();
+        Counter counter = meterRegistry.counter("test","count", "something");
+        when(meterRegistry.counter(anyString(), anyIterable())).thenReturn(counter);
+
+//        when(meterRegistry.counter(anyString(), anyString(), anyString())).thenReturn(counter);
+        when(meterRegistry.counter(anyString(), any(String[].class))).thenReturn(counter);
         when(meterRegistry.gauge(anyString(), anyInt())).thenReturn(1);
 
+        //mock encryption
+        when(encryption.tryEncryptContent(any(byte[].class))).then(returnsFirstArg());
+
+        //set properties which should be read from propertiesfile
         ReflectionTestUtils.setField(googleCloudStorage, "rawdataTopic", RAWDATA_TOPIC);
         ReflectionTestUtils.setField(googleCloudStorage, "maxBufferLines", 3);
-        InputStream inputStream = new FileInputStream(new File("src/test/resources/testNetsResponse.csv"));
-        logger.info("inputstream: {}", inputStream.available());
 
+        //set initial messages in storage
         int antConsumedPre = consumeMessages(googleCloudStorage.getRawdataClient());
 
+        //create test-file-inputstream to store
+        InputStream inputStream = new FileInputStream(new File("src/test/resources/testNetsResponse.csv"));
+
+        //do the thing
         int antTransactions = googleCloudStorage.produceMessages(inputStream, "test.csv");
-        assertEquals(9, antTransactions);
+
+        //check
+        //TODO: get the mocking of meterregistry ok so the produceMessages can work
+        assertEquals(9, antTransactions); //expected should be 9
         logger.info("read from bucket");
         int antConsumed = consumeMessages(googleCloudStorage.getRawdataClient());
         logger.info("finished handled file");

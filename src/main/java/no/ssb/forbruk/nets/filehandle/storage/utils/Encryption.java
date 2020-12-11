@@ -1,21 +1,20 @@
 package no.ssb.forbruk.nets.filehandle.storage.utils;
 
+import lombok.NonNull;
+import lombok.Setter;
 import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
 import no.ssb.rawdata.payload.encryption.EncryptionClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+@Component
 public class Encryption {
     private static final Logger logger = LoggerFactory.getLogger(GoogleCloudStorage.class);
 
     private final static EncryptionClient encryptionClient = new EncryptionClient();
 
-    static byte[] secretKey;
-
-//    String encryptionKey;
-//    String encryptionSalt;
-//    String encrypt;
 
     @Value("#{environment.forbruk_nets_encryption_key}")
     private String encryptionKey;
@@ -24,28 +23,31 @@ public class Encryption {
     @Value("${google.storage.encryption}")
     private String encrypt;
 
-//    public Encryption(String encryptionKey, String encryptionSalt, String encrypt) {
-//        this.encryptionKey = encryptionKey;
-//        this.encryptionSalt = encryptionSalt;
-//        this.encrypt = encrypt;
-//        initialize();
-//    }
+    @Setter
+    static byte[] secretKey;
+    @Setter
+    boolean doEncrypt;
 
-    public void setSecretKey() {
+
+    public void initialize() {
         secretKey = generateSecretKey(
                 encryptionKey,
                 encryptionSalt);
+        doEncrypt = doEncrypt(encrypt);
     }
 
-    public byte[] generateSecretKey(String key, String  salt) {
+    private byte[] generateSecretKey(String key, String  salt) {
         return (key != null && salt != null) ?
                 encryptionClient.generateSecretKey(key.toCharArray(), salt.getBytes()).getEncoded() :
                 null;
-
     }
+     private boolean doEncrypt(String encrypt) {
+        return encrypt != null && Boolean.parseBoolean(encrypt);
+     }
+
 
     public byte[] tryEncryptContent(byte[] content) {
-        if (doEncrypt() && secretKey != null) {
+        if (doEncrypt && secretKey != null) {
             byte[] iv = encryptionClient.generateIV();
             return encryptionClient.encrypt(secretKey, iv, content);
         }
@@ -53,15 +55,12 @@ public class Encryption {
     }
 
     public byte[] tryDecryptContent(byte[] content) {
-        if (doEncrypt() && secretKey != null && content != null) {
+        if (doEncrypt && secretKey != null && content != null) {
             return encryptionClient.decrypt(secretKey, content);
         }
         return content;
     }
 
-    private boolean doEncrypt() {
-        return encrypt != null && Boolean.parseBoolean(encrypt);
-    }
 
     @Override
     public String toString() {

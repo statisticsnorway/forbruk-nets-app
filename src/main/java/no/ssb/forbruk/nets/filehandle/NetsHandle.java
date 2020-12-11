@@ -7,9 +7,9 @@ import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.val;
-import no.ssb.forbruk.nets.db.model.NetsRecord;
-import no.ssb.forbruk.nets.db.repository.NetsRecordRepository;
+import no.ssb.forbruk.nets.db.model.ForbrukNetsLog;
+import no.ssb.forbruk.nets.db.model.service.ForbrukNetsLogService;
+import no.ssb.forbruk.nets.db.repository.ForbrukNetsLogRepository;
 import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ public class NetsHandle {
     final GoogleCloudStorage googleCloudStorage;
 
     @NonNull
-    final NetsRecordRepository netsRecordRepository;
+    final ForbrukNetsLogService forbrukNetsLogService;
 
     @NonNull
     final MeterRegistry meterRegistry;
@@ -55,12 +55,12 @@ public class NetsHandle {
         } catch (SftpException e) {
             meterRegistry.counter("forbruk_nets_app_error_handlenetsfiles","error", "sftp").increment();
             logger.error("Sftp-feil: {}", e.toString());
+            forbrukNetsLogService.saveLogError("-","forbruk_nets_app_error_handlenetsfiles", 1L);
         }
     }
 
     public void endHandleNetsFiles() {
         sftpFileTransfer.disconnectJsch();
-        printDb();
     }
 
     private void handleFile(ChannelSftp.LsEntry f) {
@@ -69,33 +69,17 @@ public class NetsHandle {
             InputStream inputStream = sftpFileTransfer.getFileInputStream(f);
             int totalTransactions = googleCloudStorage.produceMessages(inputStream, f.getFilename());
 
-            saveFileRecord(totalTransactions + " transactions saved for " + f.getFilename());
             meterRegistry.counter("forbruk_nets_app_handle_files", "count", "filestreated").increment();
+            forbrukNetsLogService.saveLogOK(f.getFilename(), "file handled", 1L);
         } catch (SftpException e) {
             meterRegistry.counter("forbruk_nets_app_error_handle_file_sftp", "error", "getfileinputstream");
             logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
-            e.printStackTrace();
+            forbrukNetsLogService.saveLogError("-","forbruk_nets_app_error_handle_file_sftp", 1L);
         } catch (Exception e) {
             meterRegistry.counter("forbruk_nets_app_error_handle_file", "error", "handle_file");
             logger.error("Error producing messages for {}: {}", f.getFilename(), e.getMessage());
-            e.printStackTrace();
+            forbrukNetsLogService.saveLogError("-","forbruk_nets_app_error_handle_file", 1L);
         }
     }
-
-
-    private void saveFileRecord(String content) {
-        logger.info("file in path: {}", content);
-        netsRecordRepository.save(NetsRecord.builder()
-                .content(content)
-                .timestamp(LocalDateTime.now())
-                .build());
-    }
-
-    private void printDb() { // TODO: Remove this method
-        List<NetsRecord> dbrecs = netsRecordRepository.findAll();
-        logger.info("antall rader i base: {}", dbrecs.size());
-//        dbrecs.forEach(d -> logger.info(d.toString()));
-        }
-
 
 }
