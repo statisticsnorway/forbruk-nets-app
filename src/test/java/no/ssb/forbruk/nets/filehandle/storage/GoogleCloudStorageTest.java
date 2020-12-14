@@ -91,9 +91,10 @@ public class GoogleCloudStorageTest {
     public void test() throws IOException {
         //set googleCloudStorage's rawdataClient and headerColumns
         googleCloudStorage.setRawdataClient(
-                // use filesystem when testing in local intelliJ
-                // ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
-                ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
+                // use gcs when testing in local intelliJ on windows because filesystem-filenames given in
+                // rawdata-client-provider-gcs includes semicolon which "windows" doesn't approve (AvroRawdataUtils)
+                 ProviderConfigurator.configure(configFileSystem, "filesystem", RawdataClientInitializer.class));
+//                ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
         googleCloudStorage.setHeaderColumns((headerLine).split(";"));
 
         //mock saving to database
