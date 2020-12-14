@@ -74,7 +74,7 @@ public class GoogleCloudStorage {
 
 
     @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
-    public void initialize() {
+    public void setupGoogleCloudStorage() {
         Map<String, String> configuration = Map.of(
                 "local-temp-folder", localTemFolder,
                 "avro-file.max.seconds", avrofileMaxSeconds,
@@ -86,7 +86,7 @@ public class GoogleCloudStorage {
                 "gcs.service-account.key-file", storageSecretFile);
 
         logger.info("cofiguration: {}", configuration);
-        encryption.initialize();
+        encryption.setEncryptionValues();
 
         rawdataClient = ProviderConfigurator.configure(configuration,
                 storageProvider, RawdataClientInitializer.class);

@@ -54,21 +54,26 @@ public class NetsHandleTest {
         Collection<ChannelSftp.LsEntry> fileList = new Vector<ChannelSftp.LsEntry>();
         fileList.add(testfile);
 
+        // ignore logging to database
         doNothing().when(forbrukNetsLogService).saveLogOK(anyString(), anyString(), anyLong());
         doNothing().when(forbrukNetsLogService).saveLogError(anyString(), anyString(), anyLong());
 
+        // ignore getting files from nets and storing content to gcs
         when(sftpFileTransfer.setupJsch()).thenReturn(true);
         when(sftpFileTransfer.fileList()).thenReturn(fileList);
         when(sftpFileTransfer.getFileInputStream(any())).thenReturn(inputStream);
         when(googleCloudStorage.produceMessages(any(), anyString())).thenReturn(5);
 
+        // try to ignore meterregistry
         Counter counter = meterRegistry.counter("test");
-        when(meterRegistry.counter(anyString(), anyCollection())).thenReturn(counter);//.increment(anyInt());
+        when(meterRegistry.counter(anyString(), anyCollection())).thenReturn(counter);
         when(meterRegistry.gauge(anyString(), anyInt())).thenReturn(1);
 
 
+        // do the thing
         netsHandle.getAndHandleNetsFiles();
 
+        // try to find whats left to check..
         assertEquals("a", "a");
 
 

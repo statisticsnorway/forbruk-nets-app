@@ -29,7 +29,7 @@ public class Encryption {
     boolean doEncrypt;
 
 
-    public void initialize() {
+    public void setEncryptionValues() {
         secretKey = generateSecretKey(
                 encryptionKey,
                 encryptionSalt);
@@ -41,9 +41,10 @@ public class Encryption {
                 encryptionClient.generateSecretKey(key.toCharArray(), salt.getBytes()).getEncoded() :
                 null;
     }
-     private boolean doEncrypt(String encrypt) {
+
+    private boolean doEncrypt(String encrypt) {
         return encrypt != null && Boolean.parseBoolean(encrypt);
-     }
+    }
 
 
     public byte[] tryEncryptContent(byte[] content) {
