@@ -11,7 +11,7 @@ google:
   storage:
     provider:
       bucket: nets-rawdata-staging-transactions
-      topic: test-transactions
+      topic: nets-transactions
     secret:
       keyfile:
     credential:
@@ -21,9 +21,7 @@ google:
       lines: 1000
     local:
       temp:
-        folder: "tmp/rawdata/nets/local-temp"
-#data-access:
-#  provider: no.ssb.dapla.data.access.service.GoogleDataAccessService
+        folder: "tmp/rawdata/nets/temp"
 
 # Metrics related configurations
 management:
@@ -78,17 +76,6 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: update
-
-
-#  flyway:
-#    locations: ./src/main/resources/db/migration
-
-
-## Project where Secret Manager is enabled and secrets stored
-#bip:
-#  gcp:
-#    secrets:
-#      projectname: forbruk-staging
 
 
 server:

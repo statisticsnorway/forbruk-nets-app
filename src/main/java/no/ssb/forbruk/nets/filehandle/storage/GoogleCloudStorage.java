@@ -103,6 +103,8 @@ public class GoogleCloudStorage {
             final AtomicBoolean skipHeader = new AtomicBoolean(false);
             final List<String> positions = new ArrayList<>();
             String line;
+            // loop through all lines in inputstream, create storagemessage for each, buffer the message
+            // and publish for each <maxbuffer> message
             while ((line = reader.readLine()) != null) {
                 try {
                     if (skipHeader.getAndSet(true)) {

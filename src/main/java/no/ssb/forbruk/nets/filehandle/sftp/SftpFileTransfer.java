@@ -45,9 +45,9 @@ public class SftpFileTransfer {
     private String privatekeyfile;
 
 
-    @Value("#{environment.NETS_PASSPHRASE_STAGING}")
+    @Value("#{environment.NETS_PASSPHRASE}")
     private String passphrase;
-    @Value("#{environment.NETS_SECRET_STAGING}")
+    @Value("#{environment.NETS_SECRET}")
     private String privateKey;
 
 
@@ -59,6 +59,7 @@ public class SftpFileTransfer {
 
     @Timed(value="forbruk_nets_app_filelist", description = "Time get one list of files from nets")
     public Collection<ChannelSftp.LsEntry> fileList() throws SftpException {
+        // get and return list of all files in <WORKDIR> at nets
         Vector<ChannelSftp.LsEntry> files = channelSftp.ls(WORKDIR);
         logger.info("number of files in {}: {}", WORKDIR, files.size());
         Collection<ChannelSftp.LsEntry> fileList = Collections.list(files.elements());
@@ -68,10 +69,12 @@ public class SftpFileTransfer {
 
     @Timed(value = "forbruk_nets_app_readonefile", description = "Time get one file from nets")
     public InputStream getFileInputStream(ChannelSftp.LsEntry f) throws SftpException {
+        // get given file as inputstream from nets
         return channelSftp.get(WORKDIR + "/" + f.getFilename());
     }
 
     public boolean setupJsch() throws JSchException, IOException {
+        // create jsch-session and open channel - and connect to nets
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
 
@@ -84,14 +87,14 @@ public class SftpFileTransfer {
 
         channelSftp = (ChannelSftp) jschSession.openChannel("sftp");
         channelSftp.connect(CHANNEL_TIMEOUT);
-//        logger.info("delete tmp file if exists ({})", Files.exists(Path.of(tmpPrivateKeyFile)));
+        // delete tmp-keyfile if exists"
         Files.deleteIfExists(Path.of(tmpPrivateKeyFile));
-        logger.info("Connected?: {}", channelSftp.isConnected());
         return channelSftp.isConnected();
     }
 
 
     private String createTemporaryPrivateKeyFile() throws IOException {
+        // create private-key-file from environment-given secret
         logger.info("privatekeyfile: {}", privatekeyfile.isEmpty() ? " null" : privatekeyfile);
         logger.info("privateKey: {}", privateKey == null ? " null" : privateKey.substring(privateKey.length()-50));
         String tmpPrivateKeyFile = "tmp/" + "nets" + ".pk";
@@ -103,6 +106,7 @@ public class SftpFileTransfer {
 
 
     public void disconnectJsch() {
+        //disconnect from nets
         if (channelSftp.isConnected()) {
             channelSftp.disconnect();
         }
