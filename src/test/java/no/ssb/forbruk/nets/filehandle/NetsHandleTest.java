@@ -10,6 +10,7 @@ import no.ssb.forbruk.nets.db.repository.ForbrukNetsLogRepository;
 import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
 import no.ssb.forbruk.nets.filehandle.storage.utils.TestUtilities;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -47,7 +48,7 @@ public class NetsHandleTest {
     @InjectMocks
     private NetsHandle netsHandle;
 
-    @Test
+//    @Test
     public void testTest() throws IOException, SftpException, JSchException {
         InputStream inputStream = new FileInputStream(new File("src/test/resources/testNetsResponse.csv"));
         ChannelSftp.LsEntry testfile = TestUtilities.lsEntryWithGivenFilename("test.csv");
