@@ -10,8 +10,8 @@ storage:
 google:
   storage:
     provider:
-      bucket: nets-rawdata-staging-transactions
-      topic: nets-transactions
+      bucket: ssb-rawdata-prod-forbruk-nets
+      topic: nets-2018-bankaxcept-transactions
     secret:
       keyfile:
     credential:

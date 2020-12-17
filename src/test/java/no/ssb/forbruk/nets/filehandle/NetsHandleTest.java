@@ -5,12 +5,11 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import no.ssb.forbruk.nets.db.model.service.ForbrukNetsLogService;
-import no.ssb.forbruk.nets.db.repository.ForbrukNetsLogRepository;
-import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
-import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
-import no.ssb.forbruk.nets.filehandle.storage.utils.TestUtilities;
-import org.junit.jupiter.api.Disabled;
+import no.ssb.forbruk.nets.db.model.ForbrukNetsFiles;
+import no.ssb.forbruk.nets.db.repository.ForbrukNetsFilesRepository;
+import no.ssb.forbruk.nets.sftp.SftpFileTransfer;
+import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
+import no.ssb.forbruk.nets.storage.utils.TestUtilities;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,7 +39,7 @@ public class NetsHandleTest {
     private GoogleCloudStorage googleCloudStorage;
 
     @Mock
-    private ForbrukNetsLogService forbrukNetsLogService;
+    private ForbrukNetsFilesRepository forbrukNetsFilesRepository;
 
     @Mock
     private MeterRegistry meterRegistry;
@@ -49,15 +48,14 @@ public class NetsHandleTest {
     private NetsHandle netsHandle;
 
 //    @Test
-    public void testTest() throws IOException, SftpException, JSchException {
+    public void test_GetAndHandleNetsfile_ok() throws Exception {
         InputStream inputStream = new FileInputStream(new File("src/test/resources/testNetsResponse.csv"));
         ChannelSftp.LsEntry testfile = TestUtilities.lsEntryWithGivenFilename("test.csv");
         Collection<ChannelSftp.LsEntry> fileList = new Vector<ChannelSftp.LsEntry>();
         fileList.add(testfile);
 
         // ignore logging to database
-        doNothing().when(forbrukNetsLogService).saveLogOK(anyString(), anyString(), anyLong());
-        doNothing().when(forbrukNetsLogService).saveLogError(anyString(), anyString(), anyLong());
+        when(forbrukNetsFilesRepository.save(any(ForbrukNetsFiles.class))).thenReturn(null);
 
         // ignore getting files from nets and storing content to gcs
         when(sftpFileTransfer.setupJsch()).thenReturn(true);

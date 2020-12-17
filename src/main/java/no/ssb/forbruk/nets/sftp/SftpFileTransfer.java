@@ -1,4 +1,4 @@
-package no.ssb.forbruk.nets.filehandle.sftp;
+package no.ssb.forbruk.nets.sftp;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
@@ -7,8 +7,7 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,10 +23,9 @@ import java.util.Vector;
 
 
 @Service
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class SftpFileTransfer {
     private static final Logger logger = LoggerFactory.getLogger(SftpFileTransfer.class);
-
 
     @Value("${forbruk.nets.host}")
     private String HOST;
@@ -44,18 +42,16 @@ public class SftpFileTransfer {
     @Value("${forbruk.nets.privatekeyfile}")
     private String privatekeyfile;
 
-
     @Value("#{environment.NETS_PASSPHRASE}")
     private String passphrase;
     @Value("#{environment.NETS_SECRET}")
     private String privateKey;
 
 
-    static ChannelSftp channelSftp = new ChannelSftp();
-    Session jschSession;
+    private static ChannelSftp channelSftp = new ChannelSftp();
+    private Session jschSession;
 
-    @NonNull
-    private MeterRegistry meterRegistry;
+    private final MeterRegistry meterRegistry;
 
     @Timed(value="forbruk_nets_app_filelist", description = "Time get one list of files from nets")
     public Collection<ChannelSftp.LsEntry> fileList() throws SftpException {

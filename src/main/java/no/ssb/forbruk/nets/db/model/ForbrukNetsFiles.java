@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Builder
-public class ForbrukNetsLog {
+public class ForbrukNetsFiles {
 
     private static final String ID_COLUMN = "NETS_REC_ID";
 
@@ -30,10 +30,6 @@ public class ForbrukNetsLog {
     @NonNull
     private String filename;
     @NonNull
-    private String counted;
-    @NonNull
-    private Long number;
-    @NonNull
-    private String status;
+    private Long transactions;
 }
 

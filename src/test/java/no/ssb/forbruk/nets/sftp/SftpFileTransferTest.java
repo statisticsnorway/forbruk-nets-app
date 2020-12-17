@@ -1,11 +1,9 @@
-package no.ssb.forbruk.nets.filehandle.sftp;
+package no.ssb.forbruk.nets.sftp;
 
-import com.google.inject.Injector;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.SftpException;
 import io.micrometer.core.instrument.MeterRegistry;
-import no.ssb.forbruk.nets.filehandle.storage.utils.TestUtilities;
-import org.junit.jupiter.api.Test;
+import no.ssb.forbruk.nets.storage.utils.TestUtilities;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;

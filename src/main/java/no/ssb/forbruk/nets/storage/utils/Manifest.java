@@ -1,4 +1,4 @@
-package no.ssb.forbruk.nets.filehandle.storage.utils;
+package no.ssb.forbruk.nets.storage.utils;
 
 import java.nio.charset.StandardCharsets;
 

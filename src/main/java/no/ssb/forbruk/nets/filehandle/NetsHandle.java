@@ -2,38 +2,37 @@ package no.ssb.forbruk.nets.filehandle;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import no.ssb.forbruk.nets.db.model.service.ForbrukNetsLogService;
-import no.ssb.forbruk.nets.filehandle.sftp.SftpFileTransfer;
-import no.ssb.forbruk.nets.filehandle.storage.GoogleCloudStorage;
+import lombok.AllArgsConstructor;
+import no.ssb.forbruk.nets.db.model.ForbrukNetsFiles;
+import no.ssb.forbruk.nets.db.repository.ForbrukNetsFilesRepository;
+import no.ssb.forbruk.nets.sftp.SftpFileTransfer;
+import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
+@AllArgsConstructor
 @Timed
 public class NetsHandle {
     private static final Logger logger = LoggerFactory.getLogger(NetsHandle.class);
 
-    @NonNull
-    final SftpFileTransfer sftpFileTransfer;
+    private final SftpFileTransfer sftpFileTransfer;
 
-    @NonNull
-    final GoogleCloudStorage googleCloudStorage;
+    private final GoogleCloudStorage googleCloudStorage;
 
-    @NonNull
-    final ForbrukNetsLogService forbrukNetsLogService;
+    private final MeterRegistry meterRegistry;
 
-    @NonNull
-    final MeterRegistry meterRegistry;
+    private final ForbrukNetsFilesRepository forbrukNetsFilesRepository;
 
     public void initialize() throws IOException, JSchException {
         sftpFileTransfer.setupJsch();
@@ -41,15 +40,25 @@ public class NetsHandle {
     }
 
     @Timed(value = "forbruk_nets_app_handlenetsfiles", description = "Time handling files from nets", longTask = true)
-    public void getAndHandleNetsFiles() {
+    public void getAndHandleNetsFiles() throws Exception {
         try {
             logger.info("find files and loop");
-            /* handle files in path */
-            sftpFileTransfer.fileList().forEach(this::handleFile);
-        } catch (SftpException e) {
+            /* handle files in path - for-loop to exit on exception*/
+            List<String> handledForbrukNetsFiles = forbrukNetsFilesRepository.findAll()
+                    .stream()
+                    .map(ForbrukNetsFiles::getFilename)
+                    .collect(Collectors.toList());
+            List<ChannelSftp.LsEntry> newNetsFiles = sftpFileTransfer.fileList()
+                    .stream()
+                    .filter(f -> !handledForbrukNetsFiles.contains(f.getFilename()))
+                    .collect(Collectors.toList());
+            for (ChannelSftp.LsEntry file : newNetsFiles) {
+                handleFile(file);
+            }
+        } catch (Exception e) {
             meterRegistry.counter("forbruk_nets_app_error_handlenetsfiles","error", "sftp").increment();
             logger.error("Sftp-feil: {}", e.toString());
-            forbrukNetsLogService.saveLogError("-","forbruk_nets_app_error_handlenetsfiles", 1L);
+            throw new Exception();
         }
     }
 
@@ -57,24 +66,24 @@ public class NetsHandle {
         sftpFileTransfer.disconnectJsch();
     }
 
-    private void handleFile(ChannelSftp.LsEntry f) {
+    private void handleFile(ChannelSftp.LsEntry f) throws Exception {
         logger.info("file in path: {}", f.getFilename());
         try {
             // get file from nets
             InputStream inputStream = sftpFileTransfer.getFileInputStream(f);
             // store filecontent to gcs
-            googleCloudStorage.produceMessages(inputStream, f.getFilename());
+            int antTransactions = googleCloudStorage.produceMessages(inputStream, f.getFilename());
 
-            meterRegistry.counter("forbruk_nets_app_handle_files", "count", "filestreated").increment();
-            forbrukNetsLogService.saveLogOK(f.getFilename(), "file handled", 1L);
-        } catch (SftpException e) {
-            meterRegistry.counter("forbruk_nets_app_error_handle_file_sftp", "error", "getfileinputstream").increment();
-            logger.error("Error in saving/reading file {}: {}", f.getFilename(), e.getMessage());
-            forbrukNetsLogService.saveLogError("-","forbruk_nets_app_error_handle_file_sftp", 1L);
-        } catch (Exception e) {
-            meterRegistry.counter("forbruk_nets_app_error_handle_file", "error", "handle_file").increment();
+            meterRegistry.counter("forbruk_nets_app_handle_files", "file", f.getFilename(), "count", "filestreated").increment();
+            forbrukNetsFilesRepository.save(ForbrukNetsFiles.builder()
+                    .filename(f.getFilename())
+                    .transactions(Long.valueOf(antTransactions))
+                    .timestamp(LocalDateTime.now())
+                    .build());
+       } catch (Exception e) {
+            meterRegistry.counter("forbruk_nets_app_error_handle_file", "file", f.getFilename(), "error", "handle_file").increment();
             logger.error("Error producing messages for {}: {}", f.getFilename(), e.getMessage());
-            forbrukNetsLogService.saveLogError("-","forbruk_nets_app_error_handle_file", 1L);
+            throw new Exception();
         }
     }
 

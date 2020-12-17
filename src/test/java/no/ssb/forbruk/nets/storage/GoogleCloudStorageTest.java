@@ -1,12 +1,11 @@
-package no.ssb.forbruk.nets.filehandle.storage;
+package no.ssb.forbruk.nets.storage;
 
-import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import no.ssb.forbruk.nets.db.model.service.ForbrukNetsLogService;
-import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
+import no.ssb.forbruk.nets.db.model.ForbrukNetsFiles;
+import no.ssb.forbruk.nets.db.repository.ForbrukNetsFilesRepository;
+import no.ssb.forbruk.nets.storage.utils.Encryption;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
 import no.ssb.rawdata.api.RawdataConsumer;
@@ -14,31 +13,24 @@ import no.ssb.rawdata.api.RawdataMessage;
 import no.ssb.service.provider.api.ProviderConfigurator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-//import org.mockito.Mock;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -56,16 +48,13 @@ public class GoogleCloudStorageTest {
     @Mock
     private Encryption encryption;
 
-    @Mock
-    private ForbrukNetsLogService forbrukNetsLogService;
-
     @InjectMocks
     private GoogleCloudStorage googleCloudStorage;
 
 
-    final static String headerLine = "TRANSAKSJONSDATO;TRANSAKSJONSTID;BRUKERSTED;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT;BR_STED_NAVN_TERM;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN";
+    private final static String headerLine = "TRANSAKSJONSDATO;TRANSAKSJONSTID;BRUKERSTED;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT;BR_STED_NAVN_TERM;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN";
 
-    final static Map configFileSystem = Map.of(
+    private final static Map configFileSystem = Map.of(
             "local-temp-folder", "local-temp-test",
             "avro-file.max.seconds","10",
             "avro-file.max.bytes", "10485760",
@@ -74,7 +63,7 @@ public class GoogleCloudStorageTest {
             "filesystem.storage-folder", "tmp/rawdata/nets"
     );
 
-    final static Map configGcs = Map.of(
+    private final static Map configGcs = Map.of(
             "local-temp-folder", "local-temp-test",
             "avro-file.max.seconds","10",
             "avro-file.max.bytes", "10485760",
@@ -85,10 +74,10 @@ public class GoogleCloudStorageTest {
             "gcs.service-account.key-file", "C://var//appdata//forbruk//ssb-team-forbruk-staging-d569602b5f9f.json"
     );
 
-    String RAWDATA_TOPIC = "rawdataTopic";
+    private final static String RAWDATA_TOPIC = "rawdataTopic";
 
-    @Test
-    public void test() throws IOException {
+//    @Test
+    public void test_produceMessages_ok() throws Exception {
         //set googleCloudStorage's rawdataClient and headerColumns
         googleCloudStorage.setRawdataClient(
                 // use gcs when testing in local intelliJ on windows because filesystem-filenames given in
@@ -97,14 +86,11 @@ public class GoogleCloudStorageTest {
 //                ProviderConfigurator.configure(configGcs, "gcs", RawdataClientInitializer.class));
         googleCloudStorage.setHeaderColumns((headerLine).split(";"));
 
-        //mock saving to database
-        doNothing().when(forbrukNetsLogService).saveLogOK(anyString(), anyString(), anyLong());
-        doNothing().when(forbrukNetsLogService).saveLogError(anyString(), anyString(), anyLong());
-
         //mock metrics
-//        doNothing().when(meterRegistry.counter(anyString(), any(String[].class))).increment();
+//        doNothing().when(meterRegistry).counter(anyString(), anyIterable()).increment();
         Counter counter = meterRegistry.counter("test","count", "something");
         when(meterRegistry.counter(anyString(), anyIterable())).thenReturn(counter);
+        when(meterRegistry.counter(anyString(), any(Iterable.class))).thenReturn(counter);
 
 //        when(meterRegistry.counter(anyString(), anyString(), anyString())).thenReturn(counter);
         when(meterRegistry.counter(anyString(), any(String[].class))).thenReturn(counter);

@@ -1,17 +1,17 @@
-package no.ssb.forbruk.nets.filehandle.storage;
+package no.ssb.forbruk.nets.storage;
 
 
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import no.ssb.forbruk.nets.db.model.service.ForbrukNetsLogService;
-import no.ssb.forbruk.nets.filehandle.storage.utils.Encryption;
-import no.ssb.forbruk.nets.filehandle.storage.utils.Manifest;
-import no.ssb.forbruk.nets.filehandle.storage.utils.ULIDGenerator;
+import no.ssb.forbruk.nets.storage.utils.Encryption;
+import no.ssb.forbruk.nets.storage.utils.Manifest;
+import no.ssb.forbruk.nets.storage.utils.ULIDGenerator;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
 import no.ssb.rawdata.api.RawdataMessage;
@@ -36,41 +36,37 @@ public class GoogleCloudStorage {
     private static final Logger logger = LoggerFactory.getLogger(GoogleCloudStorage.class);
 
     @Value("${storage.provider}")
-    String storageProvider;
+    private String storageProvider;
     @Value("${google.storage.provider.bucket}")
-    String storageBucket;
+    private String storageBucket;
     @Value("${google.storage.secret.keyfile}")
-    String storageSecretFile;
+    private String storageSecretFile;
     @Value("${google.storage.credential.provider}")
-    String credentialProvider;
+    private String credentialProvider;
     @Value("${google.storage.local.temp.folder}")
-    String localTemFolder;
+    private String localTemFolder;
     @Value("${google.storage.provider.topic}")
-    String rawdataTopic;
+    private String rawdataTopic;
     @Value("${google.storage.buffer.lines}")
-    int maxBufferLines;
+    private int maxBufferLines;
 
     @Value("${forbruk.nets.header}")
-    String headerLine;
+    private String headerLine;
 
     @NonNull
-    Encryption encryption; //= new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
+    private final Encryption encryption; //= new Encryption(encryptionKey, encryptionSalt, encrypt); // TODO: Sjekk om dette funker.
 
     @NonNull
-    final MeterRegistry meterRegistry;
-
-    @NonNull
-    final ForbrukNetsLogService forbrukNetsLogService;
-
+    private final MeterRegistry meterRegistry;
 
     @Setter @Getter
     static RawdataClient rawdataClient;
     @Setter @Getter
     static String [] headerColumns;
 
-    final static String avrofileMaxSeconds = "10";
-    final static String avrofileMaxBytes = "10485760";
-    final static String avrofileSyncInterval =  "524288";
+    private final static String avrofileMaxSeconds = "10";
+    private final static String avrofileMaxBytes = "10485760";
+    private final static String avrofileSyncInterval =  "524288";
 
 
     @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
@@ -95,7 +91,7 @@ public class GoogleCloudStorage {
     }
 
     @Timed(value="forbruk_nets_app_producemessages", description="Time store transactions for one file")
-    public int produceMessages(InputStream inputStream, String filename) {
+    public int produceMessages(InputStream inputStream, String filename) throws Exception {
 
         int totalTransactions = 0;
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
@@ -106,41 +102,32 @@ public class GoogleCloudStorage {
             // loop through all lines in inputstream, create storagemessage for each, buffer the message
             // and publish for each <maxbuffer> message
             while ((line = reader.readLine()) != null) {
-                try {
-                    if (skipHeader.getAndSet(true)) {
-                        //create unique position for fileline
-                        String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
+                if (skipHeader.getAndSet(true)) {
+                    //create unique position for fileline
+                    String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
 
-                        //create message and buffer it
-                        producer.buffer(
-                                createMessageWithManifestAndEntry(filename, producer, line, position));
-                        positions.add(position);
+                    //create message and buffer it
+                    producer.buffer(
+                            createMessageWithManifestAndEntry(filename, producer, line, position));
+                    positions.add(position);
 
-                        // publish every maxBufferLines lines
-                        if (positions.size() >= maxBufferLines) {
-                            totalTransactions += publishPositions(producer, positions, filename);
-                            positions.clear();
-                            logger.info("positions: {}", positions);
-                        }
+                    // publish every maxBufferLines lines
+                    if (positions.size() >= maxBufferLines) {
+                        totalTransactions += publishPositions(producer, positions);
+                        positions.clear();
+                        logger.info("positions: {}", positions);
                     }
-                } catch (Exception e) {
-//                    meterRegistry.counter("forbruk_nets_app_error_producemessages", "error", "produce messages").increment();
-                    logger.error("Error creating or buffering message for line {}: {}", line, e.getMessage());
-                    forbrukNetsLogService.saveLogError(filename, "forbruk_nets_app_error_producemessages", 1L);
                 }
 
             }
             // publish the last positions for file
             totalTransactions += positions.size() > 0 ?
-                    publishPositions(producer, positions, filename) : 0;
+                    publishPositions(producer, positions) : 0;
 
         } catch (Exception e) {
-//            meterRegistry.counter("forbruk_nets_app_error_rawdataproducer", "error", "generate rawdataproducer").increment();
-            logger.error("Error creating rawdataproducer for {}: {}", filename, e.getMessage());
-            e.printStackTrace();
-            forbrukNetsLogService.saveLogError(filename, "forbruk_nets_app_error_rawdataproducer", 1L);
+            meterRegistry.counter("forbruk_nets_app_error_rawdataproducer", "error", "publish messages").increment();
+            throw new Exception(e);
         }
-        forbrukNetsLogService.saveLogOK(filename, "total transactions saved", Long.valueOf(totalTransactions));
         return totalTransactions;
     }
 
@@ -158,22 +145,13 @@ public class GoogleCloudStorage {
     }
 
     @Timed(value="forbruk_nets_app_publishpositions", description = "publish positions")
-    protected int publishPositions(RawdataProducer producer, List<String> positions, String filename) {
-        try {
-            logger.info("publish {} positions", positions.size());
-            producer.publish(positions.toArray(new String[0]));
-            forbrukNetsLogService.saveLogOK(filename, "published positions", Long.valueOf(positions.size()));
-            meterRegistry.gauge("forbruk_nets_app_transactions", positions.size());
-//            meterRegistry.counter("forbruk_nets_app_total_transactions", "count", "transactions stored").increment(positions.size());
+    protected int publishPositions(RawdataProducer producer, List<String> positions) {
+        logger.info("publish {} positions", positions.size());
+        producer.publish(positions.toArray(new String[0]));
+        meterRegistry.gauge("forbruk_nets_app_transactions", positions.size());
+        meterRegistry.counter("forbruk_nets_app_total_transactions", "count", "transactions stored").increment(positions.size());
 
-            return positions.size();
-        } catch (Exception e) {
-//            meterRegistry.counter("forbruk_nets_app_error_publishpositions", "error", "store transaction").increment();
-            logger.error("something went wrong when publishing positions \n\t {} to {}, {}", positions.get(0), positions.get(positions.size()-1), e);
-            forbrukNetsLogService.saveLogError(filename, "not published positions", Long.valueOf(positions.size()));
-            return 0;
-        }
-
-
+        return positions.size();
     }
+
 }

@@ -1,4 +1,4 @@
-package no.ssb.forbruk.nets.filehandle.storage.utils;
+package no.ssb.forbruk.nets.storage.utils;
 
 import de.huxhorn.sulky.ulid.ULID;
 import org.slf4j.Logger;
