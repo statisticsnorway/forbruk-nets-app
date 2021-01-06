@@ -10,7 +10,7 @@ storage:
 google:
   storage:
     provider:
-      bucket: nets-rawdata-staging-transactions
+      bucket: set-in-environment-variable
       topic: nets-transactions
     secret:
       keyfile:
@@ -29,9 +29,6 @@ management:
     web:
       exposure:
         include: prometheus,health,info,metric
-#    base-path: /
-#    path-mapping:
-#      prometheus: health, metrics
 
 tracing:
   enabled: true
