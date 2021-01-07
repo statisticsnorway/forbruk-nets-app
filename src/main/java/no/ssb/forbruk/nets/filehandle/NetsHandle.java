@@ -48,10 +48,15 @@ public class NetsHandle {
                     .stream()
                     .map(ForbrukNetsFiles::getFilename)
                     .collect(Collectors.toList());
+            handledForbrukNetsFiles.forEach( f-> logger.info("File handled earlier: {}", f));
             List<ChannelSftp.LsEntry> newNetsFiles = sftpFileTransfer.fileList()
                     .stream()
                     .filter(f -> !handledForbrukNetsFiles.contains(f.getFilename()))
                     .collect(Collectors.toList());
+
+            logger.info("Number of files to be handled now: {}", newNetsFiles.size());
+            newNetsFiles.forEach( f -> logger.info("File to behandled now: {}", f.getFilename()));
+
             for (ChannelSftp.LsEntry file : newNetsFiles) {
                 handleFile(file);
             }

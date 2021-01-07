@@ -81,15 +81,15 @@ server:
 # Configuration used in connection to NETS
 forbruk:
   nets:
-    host: 91.102.24.144
-    user: tSSBNO
+    host: nets_ip_set_in_env_var
+    user: netsusr_set_in_env_var
     port: 22
     session_timeout: 10000
     channel_timeout: 5000
     workdir: "./Outbound"
     privatekeyfile:
     filedir: "tmp/"
-    header: "TRANSAKSJONSDATO;TRANSAKSJONSTID;BRUKERSTED;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT;BR_STED_NAVN_TERM;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN"
+    header: "TRANSAKSJONSDATO;TRANSTYPESTATUS;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT "
 
 
 
