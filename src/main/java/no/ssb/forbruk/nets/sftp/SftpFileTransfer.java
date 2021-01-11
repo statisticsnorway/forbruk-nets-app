@@ -63,6 +63,7 @@ public class SftpFileTransfer {
         logger.info("number of files in {}: {}", WORKDIR, files.size());
         Collection<ChannelSftp.LsEntry> fileList = Collections.list(files.elements());
         meterRegistry.counter("forbruk_nets_app.files", "filesFromNets", "count").increment(fileList.size());
+        fileList.forEach(f -> logger.info(f.getFilename()));
         return fileList;
     }
 
@@ -74,6 +75,7 @@ public class SftpFileTransfer {
 
     public boolean setupJsch() throws JSchException, IOException {
         // create jsch-session and open channel - and connect to nets
+        logger.info("nets ip and user: {} and {} - pasphrase-length: {}", USER, HOST, passphrase.length());
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
 

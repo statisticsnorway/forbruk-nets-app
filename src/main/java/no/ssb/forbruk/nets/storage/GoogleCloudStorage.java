@@ -102,6 +102,7 @@ public class GoogleCloudStorage {
             // loop through all lines in inputstream, create storagemessage for each, buffer the message
             // and publish for each <maxbuffer> message
             while ((line = reader.readLine()) != null) {
+                logger.info("line: {}", line);
                 if (skipHeader.getAndSet(true)) {
                     //create unique position for fileline
                     String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
