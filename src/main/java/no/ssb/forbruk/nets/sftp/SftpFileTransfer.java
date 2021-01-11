@@ -75,11 +75,13 @@ public class SftpFileTransfer {
 
     public boolean setupJsch() throws JSchException, IOException {
         // create jsch-session and open channel - and connect to nets
-        logger.info("nets ip and user: {} and {} - pasphrase-length: {}", USER, HOST, passphrase.length());
+        logger.info("nets user {}, host {} and port {} - passphrase-length: {}, ({})", USER, HOST, PORT, passphrase.length(), passphrase.substring(3,5));
         JSch jsch = new JSch();
         jsch.setKnownHosts("~/.ssh/known_hosts");
 
         String tmpPrivateKeyFile = createTemporaryPrivateKeyFile();
+        String pk = new String(Files.readAllBytes(Path.of(tmpPrivateKeyFile)));
+        logger.info("pk: {} ... {}", pk.substring(0,100), pk.substring(pk.length()-50));
 
         jsch.addIdentity(tmpPrivateKeyFile, passphrase);
         jschSession = jsch.getSession(USER, HOST, PORT);
