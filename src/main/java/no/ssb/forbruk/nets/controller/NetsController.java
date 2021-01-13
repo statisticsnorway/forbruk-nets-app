@@ -2,6 +2,7 @@ package no.ssb.forbruk.nets.controller;
 
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
+import no.ssb.forbruk.nets.db.repository.ForbrukNetsFilesRepository;
 import no.ssb.forbruk.nets.filehandle.NetsHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +19,15 @@ public class NetsController {
 
     NetsHandle netsHandle;
     MeterRegistry meterRegistry;
+    private final ForbrukNetsFilesRepository forbrukNetsFilesRepository;
 
-    public NetsController (NetsHandle netsHandle) {
+
+    public NetsController (NetsHandle netsHandle,
+                           ForbrukNetsFilesRepository forbrukNetsFilesRepository,
+                           MeterRegistry meterRegistry) {
         this.netsHandle = netsHandle;
+        this.forbrukNetsFilesRepository = forbrukNetsFilesRepository;
+        this.meterRegistry = meterRegistry;
     }
 
     @GetMapping("/netsfiles")
@@ -39,6 +46,24 @@ public class NetsController {
         }
     }
 
+    @GetMapping("/fileshandled")
+    public ResponseEntity<String> countHandledNetsFiles() {
+        try {
+            long numberOfHandledFiles = forbrukNetsFilesRepository.count();
+            int numberOfStoredTransactions = forbrukNetsFilesRepository.findAll().stream()
+                    .mapToInt(x -> x.getTransactions().intValue())
+                    .sum();
+            meterRegistry.gauge("forbruk_nets_app_db_files", numberOfHandledFiles);
+            meterRegistry.gauge("forbruk_nets_app_db_transactions", numberOfStoredTransactions);
+
+            return new ResponseEntity<>("a total of " + numberOfHandledFiles + " files and " +
+                    numberOfStoredTransactions + " transactions are handled and stored", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Something went wrong in getting database information {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong in getting database information ", HttpStatus.EXPECTATION_FAILED);
+        }
+    }
 
 }
 
