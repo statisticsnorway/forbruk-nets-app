@@ -66,11 +66,5 @@ public class NetsController {
         }
     }
 
-    @GetMapping("/deletefiles")
-    public ResponseEntity<String> deleteAllInDatabase() {
-        forbrukNetsFilesRepository.deleteAll();
-        return new ResponseEntity<>("all databaserows deleted", HttpStatus.OK);
-    }
-
 }
 
