@@ -11,7 +11,6 @@ import no.ssb.forbruk.nets.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -65,6 +64,7 @@ public class NetsHandle {
             logger.error("Sftp-feil: {}", e.toString());
             throw new Exception();
         }
+
     }
 
     public void endHandleNetsFiles() {
@@ -79,17 +79,26 @@ public class NetsHandle {
             // store filecontent to gcs
             int antTransactions = googleCloudStorage.produceMessages(inputStream, f.getFilename());
 
-            meterRegistry.counter("forbruk_nets_app_handle_files", "file", f.getFilename(), "count", "filestreated").increment();
-            forbrukNetsFilesRepository.save(ForbrukNetsFiles.builder()
-                    .filename(f.getFilename())
-                    .transactions(Long.valueOf(antTransactions))
-                    .timestamp(LocalDateTime.now())
-                    .build());
-       } catch (Exception e) {
+            logSuccessedFile(f.getFilename(), antTransactions);
+        } catch (Exception e) {
             meterRegistry.counter("forbruk_nets_app_error_handle_file", "file", f.getFilename(), "error", "handle_file").increment();
             logger.error("Error producing messages for {}: {}", f.getFilename(), e.getMessage());
             throw new Exception();
         }
+    }
+
+    private void logSuccessedFile(String filename, int antTransactions) {
+        meterRegistry.counter("forbruk_nets_app_handle_files", "file", filename, "count", "filestreated").increment();
+        forbrukNetsFilesRepository.save(ForbrukNetsFiles.builder()
+                .filename(filename)
+                .transactions(Long.valueOf(antTransactions))
+                .timestamp(LocalDateTime.now())
+                .build());
+        meterRegistry.gauge("forbruk_nets_app_db_files", forbrukNetsFilesRepository.count());
+        meterRegistry.gauge("forbruk_nets_app_db_transactions",
+                forbrukNetsFilesRepository.findAll().stream()
+                .mapToInt(x -> x.getTransactions().intValue())
+                .sum());
     }
 
 }

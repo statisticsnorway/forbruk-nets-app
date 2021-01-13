@@ -10,4 +10,5 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 //@RepositoryRestResource(collectionResourceRel = "netsRecord", path = "netsRecord")
 public interface ForbrukNetsFilesRepository extends JpaRepository<ForbrukNetsFiles, Long> {
 
+
 }
