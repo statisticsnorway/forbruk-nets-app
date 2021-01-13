@@ -66,7 +66,7 @@ public class NetsController {
         }
     }
 
-    @PostMapping("/deletefiles")
+    @GetMapping("/deletefiles")
     public ResponseEntity<String> deleteAllInDatabase() {
         forbrukNetsFilesRepository.deleteAll();
         return new ResponseEntity<>("all databaserows deleted", HttpStatus.OK);
