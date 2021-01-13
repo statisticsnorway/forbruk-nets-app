@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
@@ -63,6 +64,12 @@ public class NetsController {
             e.printStackTrace();
             return new ResponseEntity<>("Something went wrong in getting database information ", HttpStatus.EXPECTATION_FAILED);
         }
+    }
+
+    @PostMapping("/deletefiles")
+    public ResponseEntity<String> deleteAllInDatabase() {
+        forbrukNetsFilesRepository.deleteAll();
+        return new ResponseEntity<>("all databaserows deleted", HttpStatus.OK);
     }
 
 }
