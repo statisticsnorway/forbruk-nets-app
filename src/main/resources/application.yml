@@ -11,7 +11,7 @@ google:
   storage:
     provider:
       bucket: set-in-environment-variable
-      topic: nets-transactions-2018
+      topic: transactions-nets-2018
     secret:
       keyfile:
     credential:
@@ -96,5 +96,5 @@ forbruk:
 # Scheduler
 scheduled:
   cron:
-    listfiles: "0 0 5 * * ?"
+    listfiles: "0 0 8 * * ?"
 
