@@ -54,7 +54,8 @@ public class NetsHandle {
                     .collect(Collectors.toList());
 
             logger.info("Number of files to be handled now: {}", newNetsFiles.size());
-            newNetsFiles.forEach( f -> logger.info("File to be handled now: {}", f.getFilename()));
+            newNetsFiles.forEach( f -> logger.info("File to be handled now: {} ({})", f.getFilename(), f.getAttrs().getSize()));
+
 
             for (ChannelSftp.LsEntry file : newNetsFiles) {
                 handleFile(file);
