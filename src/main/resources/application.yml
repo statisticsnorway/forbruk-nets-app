@@ -18,7 +18,7 @@ google:
       provider: compute-engine
     encryption: true
     buffer:
-      lines: 1000
+      lines: 100
     local:
       temp:
         folder: "tmp/rawdata/nets/temp"
@@ -96,5 +96,5 @@ forbruk:
 # Scheduler
 scheduled:
   cron:
-    listfiles: "0 0 5/4 * * ?"
+    listfiles: "0 0 5 * * ?"
 
