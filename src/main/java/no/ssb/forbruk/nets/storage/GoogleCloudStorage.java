@@ -50,6 +50,11 @@ public class GoogleCloudStorage {
     @Value("${google.storage.buffer.lines}")
     private int maxBufferLines;
 
+    private final static String avrofileMaxSeconds = "10";
+    private final static String avrofileMaxBytes = "10485760";
+    private final static String avrofileSyncInterval =  "524288";
+
+
     @Value("${forbruk.nets.header}")
     private String headerLine;
 
@@ -64,9 +69,7 @@ public class GoogleCloudStorage {
     @Setter @Getter
     static String [] headerColumns;
 
-    private final static String avrofileMaxSeconds = "10";
-    private final static String avrofileMaxBytes = "10485760";
-    private final static String avrofileSyncInterval =  "524288";
+
 
 
     @Counted(value="forbruk_nets_app_cloudstorageinitialize", description="count googlecloudstorage initializing")
@@ -97,6 +100,7 @@ public class GoogleCloudStorage {
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             final AtomicBoolean skipHeader = new AtomicBoolean(false);
+            final AtomicBoolean createAvroHeader = new AtomicBoolean(true);
             final List<String> positions = new ArrayList<>();
             String line;
             // loop through all lines in inputstream, create storagemessage for each, buffer the message
@@ -108,7 +112,8 @@ public class GoogleCloudStorage {
 
                     //create message and buffer it
                     producer.buffer(
-                            createMessageWithManifestAndEntry(filename, producer, line, position));
+                            createMessageWithManifestAndEntry(filename, producer, line, position
+                            , createAvroHeader.getAndSet(false), positions.size() < 3));
                     positions.add(position);
 
                     // publish every maxBufferLines lines
@@ -131,16 +136,24 @@ public class GoogleCloudStorage {
         return totalTransactions;
     }
 
-    private RawdataMessage.Builder createMessageWithManifestAndEntry(String filename, RawdataProducer producer, String line, String position) {
+    private RawdataMessage.Builder createMessageWithManifestAndEntry(String filename, RawdataProducer producer
+            , String line, String position, boolean createAvroHeader, boolean log) {
         byte[] manifestJson = Manifest.generateManifest(
                 producer.topic(), position, line.length(),
-                headerColumns, filename);
+                headerColumns, filename, createAvroHeader);
 
+        if (log) {
+            logger.info("Manifest: {}", new String(manifestJson));
+        }
         RawdataMessage.Builder messageBuilder = producer.builder();
         messageBuilder.position(position);
 
         messageBuilder.put("manifest.json", encryption.tryEncryptContent(manifestJson));
         messageBuilder.put("entry", encryption.tryEncryptContent(line.getBytes()));
+        if (log) {
+            logger.info("messagebuilder-length: manifest: {}, entry: {}", messageBuilder.get("manifest.json").length, messageBuilder.get("entry").length);
+        }
+
         return messageBuilder;
     }
 

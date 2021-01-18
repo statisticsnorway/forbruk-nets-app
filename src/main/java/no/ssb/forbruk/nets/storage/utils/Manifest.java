@@ -6,7 +6,7 @@ public class Manifest {
     static MetadataContent.Builder metadataContentBuilder = new MetadataContent.Builder();
 
     public static byte[] generateManifest(String topic, String position, int contentLength,
-                                          String[] headerColumns, String filename ) {
+                                          String[] headerColumns, String filename, boolean createAvroHeader ) {
 
         metadataContentBuilder.topic(topic)
                 .position(position)
@@ -23,15 +23,17 @@ public class Manifest {
 
         // store csv/avro mapping
         metadataContentBuilder
-                .sourcePath("mem://test-block")
+                .sourcePath("mem://nets-block")
                 .sourceFile(filename)
                 .sourceCharset(StandardCharsets.UTF_8.name())
                 .delimiter(";")
                 .recordType(MetadataContent.RecordType.ENTRY);
 
-        for (String headerColumn : headerColumns) {
-            String avroColumn = MetadataContent.formatAsAvroColumn(headerColumn); // please notice: format CSV Header Column as Avro compatible column
-            metadataContentBuilder.csvMapping(headerColumn, avroColumn);
+        if (createAvroHeader) {
+            for (String headerColumn : headerColumns) {
+                String avroColumn = MetadataContent.formatAsAvroColumn(headerColumn); // please notice: format CSV Header Column as Avro compatible column
+                metadataContentBuilder.csvMapping(headerColumn, avroColumn);
+            }
         }
 
         return metadataContentBuilder.build().toJSON().getBytes();
