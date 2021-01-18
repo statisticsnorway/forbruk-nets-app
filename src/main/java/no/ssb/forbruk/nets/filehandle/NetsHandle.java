@@ -13,10 +13,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -100,6 +104,40 @@ public class NetsHandle {
                 forbrukNetsFilesRepository.findAll().stream()
                 .mapToInt(x -> x.getTransactions().intValue())
                 .sum());
+    }
+
+
+    public void downloadFirstFile() {
+        try {
+            logger.info("find files and loop");
+            /* handle files in path - for-loop to exit on exception*/
+            Optional<ChannelSftp.LsEntry> netsfile = sftpFileTransfer.fileList()
+                    .stream()
+                    .findFirst();
+
+
+            logger.info("File to be downloaded now: {} ({})", netsfile.get().getFilename(), netsfile.get().getAttrs().getSize());
+            sftpFileTransfer.saveFile(netsfile.get());
+
+
+        } catch (Exception e) {
+            meterRegistry.counter("forbruk_nets_app_error_handlenetsfiles","error", "sftp").increment();
+            logger.error("Sftp-feil: {}", e.toString());
+        }
+    }
+
+    public void handleTestFile(String filename) {
+        logger.info("file in path: {}", "tmp/ " + filename);
+        try {
+            InputStream inputStream = new FileInputStream(new File("tmp/"+filename));
+            // store filecontent to gcs
+            int antTransactions = googleCloudStorage.produceMessages(inputStream, filename);
+
+        } catch (Exception e) {
+            meterRegistry.counter("forbruk_nets_app_error_handle_file", "file", filename, "error", "handle_file").increment();
+            logger.error("Error producing messages for {}: {}", filename, e.getMessage());
+
+        }
     }
 
 }

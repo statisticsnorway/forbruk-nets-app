@@ -15,8 +15,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -44,8 +46,8 @@ public class SftpFileTransfer {
     @Value("${forbruk.nets.privatekeyfile}")
     private String privatekeyfile;
 
-    @Value("#{environment.NETS_PASSPHRASE}")
-    private String passphrase;
+//    @Value("#{environment.NETS_PASSPHRASE}")
+    private String passphrase="hl*eL936JsaD";
     @Value("#{environment.NETS_SECRET}")
     private String privateKey;
 
@@ -72,6 +74,17 @@ public class SftpFileTransfer {
         // get given file as inputstream from nets
         return channelSftp.get(WORKDIR + "/" + f.getFilename());
     }
+
+
+    public void saveFile(ChannelSftp.LsEntry f) {
+        logger.info("file in path: {}", f.getFilename());
+        try {
+            channelSftp.get(WORKDIR + "/" + f.getFilename(), "tmp/file" + f.getFilename());
+        } catch (SftpException e) {
+            logger.error("Error in saving file {}: {}", f.getFilename(), e.getMessage());
+        }
+    }
+
 
     public boolean setupJsch() throws JSchException, IOException {
         // create jsch-session and open channel - and connect to nets

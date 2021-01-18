@@ -11,14 +11,14 @@ google:
   storage:
     provider:
       bucket: set-in-environment-variable
-      topic: transactions-nets-2018-1
+      topic: transactions-nets-2018-2
     secret:
       keyfile:
     credential:
       provider: compute-engine
     encryption: true
     buffer:
-      lines: 100
+      lines: 10000
     local:
       temp:
         folder: "tmp/rawdata/nets/temp"

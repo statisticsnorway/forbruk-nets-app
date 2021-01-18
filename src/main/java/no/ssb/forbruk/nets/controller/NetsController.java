@@ -66,5 +66,34 @@ public class NetsController {
         }
     }
 
+    @GetMapping("/downloadfirstfile")
+    public ResponseEntity<String> downloadfirstfile() {
+        try {
+            netsHandle.initialize();
+            logger.info("Called netsfiles - " + LocalDateTime.now());
+            netsHandle.downloadFirstFile();
+            netsHandle.endHandleNetsFiles();
+            return new ResponseEntity<>("Files treated", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Something went wrong in handling netsfiles {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong in handling netsfiles ", HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+
+    @GetMapping("/handletestfile")
+    public ResponseEntity<String> handeltestfile() {
+        try {
+            netsHandle.initialize();
+            netsHandle.handleTestFile("filepSSBNO_SSB_Data_delivery_201801.csv");
+            logger.info("Called netsfiles - " + LocalDateTime.now());
+            return new ResponseEntity<>("File handled", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Something went wrong in handling netsfiles {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong in handling netsfiles ", HttpStatus.EXPECTATION_FAILED);
+        }
+    }
 }
 
