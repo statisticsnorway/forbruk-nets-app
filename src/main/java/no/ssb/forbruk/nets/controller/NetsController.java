@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
@@ -65,6 +64,22 @@ public class NetsController {
             return new ResponseEntity<>("Something went wrong in getting database information ", HttpStatus.EXPECTATION_FAILED);
         }
     }
+
+    @GetMapping("/cleandatabase")
+    public ResponseEntity<String> cleanDatabase() {
+        try {
+            forbrukNetsFilesRepository.deleteAll();
+            logger.info("Deleted all from db-table forbruk_nets_files - " + LocalDateTime.now());
+            return new ResponseEntity<>("Tablerows deleted", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Something went wrong in deleting tablerows{}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong in deleting tablerows ", HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
+
+
 
 }
 

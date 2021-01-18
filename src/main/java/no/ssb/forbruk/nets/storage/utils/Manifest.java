@@ -3,10 +3,11 @@ package no.ssb.forbruk.nets.storage.utils;
 import java.nio.charset.StandardCharsets;
 
 public class Manifest {
-    static MetadataContent.Builder metadataContentBuilder = new MetadataContent.Builder();
 
     public static byte[] generateManifest(String topic, String position, int contentLength,
-                                          String[] headerColumns, String filename, boolean createAvroHeader ) {
+                                          String[] headerColumns, String filename) {
+
+        final MetadataContent.Builder metadataContentBuilder = new MetadataContent.Builder();
 
         metadataContentBuilder.topic(topic)
                 .position(position)
@@ -29,11 +30,9 @@ public class Manifest {
                 .delimiter(";")
                 .recordType(MetadataContent.RecordType.ENTRY);
 
-        if (createAvroHeader) {
-            for (String headerColumn : headerColumns) {
-                String avroColumn = MetadataContent.formatAsAvroColumn(headerColumn); // please notice: format CSV Header Column as Avro compatible column
-                metadataContentBuilder.csvMapping(headerColumn, avroColumn);
-            }
+        for (String headerColumn : headerColumns) {
+            String avroColumn = MetadataContent.formatAsAvroColumn(headerColumn); // please notice: format CSV Header Column as Avro compatible column
+            metadataContentBuilder.csvMapping(headerColumn, avroColumn);
         }
 
         return metadataContentBuilder.build().toJSON().getBytes();

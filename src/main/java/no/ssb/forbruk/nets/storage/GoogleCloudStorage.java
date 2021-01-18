@@ -100,7 +100,6 @@ public class GoogleCloudStorage {
         try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             final AtomicBoolean skipHeader = new AtomicBoolean(false);
-            final AtomicBoolean createAvroHeader = new AtomicBoolean(true);
             final List<String> positions = new ArrayList<>();
             String line;
             // loop through all lines in inputstream, create storagemessage for each, buffer the message
@@ -113,7 +112,7 @@ public class GoogleCloudStorage {
                     //create message and buffer it
                     producer.buffer(
                             createMessageWithManifestAndEntry(filename, producer, line, position
-                            , createAvroHeader.getAndSet(false), positions.size() < 3));
+                            , positions.size() < 3));
                     positions.add(position);
 
                     // publish every maxBufferLines lines
@@ -137,10 +136,10 @@ public class GoogleCloudStorage {
     }
 
     private RawdataMessage.Builder createMessageWithManifestAndEntry(String filename, RawdataProducer producer
-            , String line, String position, boolean createAvroHeader, boolean log) {
+            , String line, String position, boolean log) {
         byte[] manifestJson = Manifest.generateManifest(
                 producer.topic(), position, line.length(),
-                headerColumns, filename, createAvroHeader);
+                headerColumns, filename);
 
         if (log) {
             logger.info("Manifest: {}", new String(manifestJson));
