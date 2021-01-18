@@ -96,5 +96,5 @@ forbruk:
 # Scheduler
 scheduled:
   cron:
-    listfiles: "0 25 8 * * ?"
+    listfiles: "0 25 9 * * ?"
 
