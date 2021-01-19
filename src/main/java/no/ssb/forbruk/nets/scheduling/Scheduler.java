@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import no.ssb.forbruk.nets.filehandle.NetsHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -39,4 +41,16 @@ public class Scheduler {
         }
         netsHandle.endHandleNetsFiles();
     }
+
+    @Scheduled(cron = "${scheduled.cron.cleantable}")
+    public void cleantable() {
+        try {
+            netsHandle.deleteAllFromDBTable();
+            logger.info("Deleted all from db-table forbruk_nets_files - " + LocalDateTime.now());
+        } catch (Exception e) {
+            logger.error("Something went wrong in deleting tablerows{}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 }

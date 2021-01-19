@@ -11,7 +11,7 @@ google:
   storage:
     provider:
       bucket: set-in-environment-variable
-      topic: transactions-nets-2018-4
+      topic: transactions-nets-2018
     secret:
       keyfile:
     credential:
@@ -93,8 +93,9 @@ forbruk:
 
 
 
-# Scheduler
+# Scheduler (one hour earlier than local time)
 scheduled:
   cron:
-    listfiles: "0 25 9 18 1 ?"
+    listfiles: "0 30 7 19 1 ?"
+    cleantable: "0 29 7 19 1 ?"
 

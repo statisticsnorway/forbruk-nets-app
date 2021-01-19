@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,8 @@ public class GoogleCloudStorage {
     public int produceMessages(InputStream inputStream, String filename) throws Exception {
 
         int totalTransactions = 0;
-        try (RawdataProducer producer = rawdataClient.producer(rawdataTopic)) {
+        String fileTopic = rawdataTopic + "-" + filename.substring(filename.length()-6, filename.length()-4);
+        try (RawdataProducer producer = rawdataClient.producer(fileTopic)) {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             final AtomicBoolean skipHeader = new AtomicBoolean(false);
             final List<String> positions = new ArrayList<>();

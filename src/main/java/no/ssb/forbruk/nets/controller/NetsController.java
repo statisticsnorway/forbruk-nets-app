@@ -30,21 +30,21 @@ public class NetsController {
         this.meterRegistry = meterRegistry;
     }
 
-    @GetMapping("/netsfiles")
-    @Timed(value="forbruk_nets_app_controller", description = "Time spent running controller")
-    public ResponseEntity<String> handleNetsFiles() {
-        try {
-            netsHandle.initialize();
-            logger.info("Called netsfiles - " + LocalDateTime.now());
-            netsHandle.getAndHandleNetsFiles();
-            netsHandle.endHandleNetsFiles();
-            return new ResponseEntity<>("Files treated", HttpStatus.OK);
-        } catch (Exception e) {
-            logger.error("Something went wrong in handling netsfiles {}", e.getMessage());
-            e.printStackTrace();
-            return new ResponseEntity<>("Something went wrong in handling netsfiles ", HttpStatus.EXPECTATION_FAILED);
-        }
-    }
+//    @GetMapping("/netsfiles")
+//    @Timed(value="forbruk_nets_app_controller", description = "Time spent running controller")
+//    public ResponseEntity<String> handleNetsFiles() {
+//        try {
+//            netsHandle.initialize();
+//            logger.info("Called netsfiles - " + LocalDateTime.now());
+//            netsHandle.getAndHandleNetsFiles();
+//            netsHandle.endHandleNetsFiles();
+//            return new ResponseEntity<>("Files treated", HttpStatus.OK);
+//        } catch (Exception e) {
+//            logger.error("Something went wrong in handling netsfiles {}", e.getMessage());
+//            e.printStackTrace();
+//            return new ResponseEntity<>("Something went wrong in handling netsfiles ", HttpStatus.EXPECTATION_FAILED);
+//        }
+//    }
 
     @GetMapping("/fileshandled")
     public ResponseEntity<String> countHandledNetsFiles() {
@@ -64,22 +64,6 @@ public class NetsController {
             return new ResponseEntity<>("Something went wrong in getting database information ", HttpStatus.EXPECTATION_FAILED);
         }
     }
-
-    @GetMapping("/cleandatabase")
-    public ResponseEntity<String> cleanDatabase() {
-        try {
-            forbrukNetsFilesRepository.deleteAll();
-            logger.info("Deleted all from db-table forbruk_nets_files - " + LocalDateTime.now());
-            return new ResponseEntity<>("Tablerows deleted", HttpStatus.OK);
-        } catch (Exception e) {
-            logger.error("Something went wrong in deleting tablerows{}", e.getMessage());
-            e.printStackTrace();
-            return new ResponseEntity<>("Something went wrong in deleting tablerows ", HttpStatus.EXPECTATION_FAILED);
-        }
-    }
-
-
-
 
 }
 
