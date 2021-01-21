@@ -3,6 +3,7 @@ package no.ssb.forbruk.nets.scheduling;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import no.ssb.forbruk.nets.filehandle.NetsHandle;
 import org.slf4j.Logger;
@@ -13,14 +14,20 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class Scheduler {
     private static final Logger logger = LoggerFactory.getLogger(Scheduler.class);
 
+    @NonNull
     private final NetsHandle netsHandle;
+    @NonNull
     private final MeterRegistry meterRegistry;
+
+    private AtomicInteger numberOfFilesDbCounted = new AtomicInteger(0);
+    private AtomicInteger numberOfTransactionsDbCounted = new AtomicInteger(0);
 
     private static boolean okToRun = true;
 
@@ -29,7 +36,7 @@ public class Scheduler {
     public void handleNetsTransactions() {
         if (okToRun) {
             try {
-                netsHandle.initialize();
+                netsHandle.initialize(numberOfFilesDbCounted, numberOfTransactionsDbCounted);
                 logger.info("Called netsfiles - " + LocalDateTime.now());
                 netsHandle.getAndHandleNetsFiles();
             } catch (Exception e) {

@@ -4,40 +4,53 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.AllArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import no.ssb.forbruk.nets.db.model.ForbrukNetsFiles;
 import no.ssb.forbruk.nets.db.repository.ForbrukNetsFilesRepository;
 import no.ssb.forbruk.nets.sftp.SftpFileTransfer;
 import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Timed
 public class NetsHandle {
     private static final Logger logger = LoggerFactory.getLogger(NetsHandle.class);
 
+    @NonNull
     private final SftpFileTransfer sftpFileTransfer;
 
+    @NonNull
     private final GoogleCloudStorage googleCloudStorage;
 
+    @NonNull
     private final MeterRegistry meterRegistry;
 
+    @NonNull
     private final ForbrukNetsFilesRepository forbrukNetsFilesRepository;
 
-    public void initialize() throws IOException, JSchException {
+    private AtomicInteger numberOfFilesDb;
+    private AtomicInteger numberOfTransactionsDb;
+
+    public void initialize( AtomicInteger numberOfFilesDb, AtomicInteger numberOfTransactionsDb) throws IOException, JSchException {
         sftpFileTransfer.setupJsch();
         googleCloudStorage.setupGoogleCloudStorage();
+        this.numberOfFilesDb = numberOfFilesDb;
+        this.numberOfTransactionsDb = numberOfTransactionsDb;
+
     }
 
     @Timed(value = "forbruk_nets_app_handlenetsfiles", description = "Time handling files from nets", longTask = true)
@@ -94,14 +107,18 @@ public class NetsHandle {
         meterRegistry.counter("forbruk_nets_app_handle_files", "file", filename, "count", "filestreated").increment();
         forbrukNetsFilesRepository.save(ForbrukNetsFiles.builder()
                 .filename(filename)
-                .transactions(Long.valueOf(antTransactions))
+                .transactions((long)antTransactions)
                 .timestamp(LocalDateTime.now())
                 .build());
-        meterRegistry.gauge("forbruk_nets_app_db_files", forbrukNetsFilesRepository.count());
-        meterRegistry.gauge("forbruk_nets_app_db_transactions",
-                forbrukNetsFilesRepository.findAll().stream()
+
+        long numberOfHandledFiles = forbrukNetsFilesRepository.count();
+        int numberOfStoredTransactions = forbrukNetsFilesRepository.findAll().stream()
                 .mapToInt(x -> x.getTransactions().intValue())
-                .sum());
+                .sum();
+
+        numberOfFilesDb.set( (int) numberOfHandledFiles);
+        numberOfTransactionsDb.set(numberOfStoredTransactions);
+
     }
 
     public void deleteAllFromDBTable() throws Exception {

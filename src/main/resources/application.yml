@@ -28,7 +28,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: prometheus,health,info,metric
+        include: prometheus,health,info,metrics, scheduledtasks, mappings, loggers, logfile, beans
+    enabled-by-default: true
 
 tracing:
   enabled: true
@@ -96,6 +97,6 @@ forbruk:
 # Scheduler (one hour earlier than local time)
 scheduled:
   cron:
-    listfiles: "0 0 8 21 1 ?"
+    listfiles: "0 40 12 21 1 ?"
     cleantable: "0 29 7 19 1 ?"
 
