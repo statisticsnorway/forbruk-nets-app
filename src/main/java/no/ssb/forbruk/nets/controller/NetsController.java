@@ -79,6 +79,21 @@ public class NetsController {
         }
     }
 
+    @GetMapping("/listfilesatnets")
+    public ResponseEntity<String> listFilesAtNets() {
+        try {
+            netsHandle.initialize(numberOfFilesDbCounted, numberOfTransactionsDbCounted);
+            logger.info("Called netsfiles - " + LocalDateTime.now());
+            String fileJson = netsHandle.listAllNetsFiles();
+            netsHandle.endHandleNetsFiles();
+            return new ResponseEntity<>(fileJson, HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Something went wrong listing nets-files {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong listing nets-files ", HttpStatus.EXPECTATION_FAILED);
+        }
+    }
+
     private String createJsonFromResultset(List<ForbrukNetsFiles> filesAndTransactions) {
         Gson gsonBuilder = new GsonBuilder().setPrettyPrinting().setDateFormat("dd.MM.yyyy hh.mm.ss").create();
         return gsonBuilder.toJson(filesAndTransactions);

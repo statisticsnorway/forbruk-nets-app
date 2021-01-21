@@ -1,7 +1,10 @@
 package no.ssb.forbruk.nets.filehandle;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.NonNull;
@@ -120,6 +123,17 @@ public class NetsHandle {
         numberOfTransactionsDb.set(numberOfStoredTransactions);
 
     }
+
+    public String listAllNetsFiles() throws SftpException {
+        List<ChannelSftp.LsEntry> netsFiles = sftpFileTransfer.fileList()
+                .stream()
+                .collect(Collectors.toList());
+
+        logger.info("{} files at Nets:", netsFiles.size());
+        netsFiles.forEach( f -> logger.info("File : {} ({})", f.getFilename(), f.getAttrs().getSize()));
+        return new GsonBuilder().setPrettyPrinting().create().toJson(netsFiles);
+    }
+
 
     public void deleteAllFromDBTable() throws Exception {
         forbrukNetsFilesRepository.deleteAll();
