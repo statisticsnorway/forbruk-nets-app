@@ -4,7 +4,6 @@ package no.ssb.forbruk.nets.storage;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -70,6 +70,7 @@ public class GoogleCloudStorage {
     @Setter @Getter
     static String [] headerColumns;
 
+    private AtomicInteger numberOfStoredTransactions;
 
 
 
@@ -92,6 +93,9 @@ public class GoogleCloudStorage {
                 storageProvider, RawdataClientInitializer.class);
 
         headerColumns = headerLine.split(";");
+
+        this.numberOfStoredTransactions = meterRegistry.gauge(
+                "forbruk_nets_app_transactions", new AtomicInteger(0));
     }
 
     @Timed(value="forbruk_nets_app_producemessages", description="Time store transactions for one file")
@@ -162,8 +166,9 @@ public class GoogleCloudStorage {
     protected int publishPositions(RawdataProducer producer, List<String> positions) {
         logger.info("publish {} positions", positions.size());
         producer.publish(positions.toArray(new String[0]));
-        meterRegistry.gauge("forbruk_nets_app_transactions", positions.size());
         meterRegistry.counter("forbruk_nets_app_total_transactions", "count", "transactions stored").increment(positions.size());
+//        meterRegistry.gauge("", positions.size());
+        numberOfStoredTransactions.set(positions.size());
 
         return positions.size();
     }
