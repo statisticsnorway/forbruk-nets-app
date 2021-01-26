@@ -101,8 +101,8 @@ public class NetsHandle {
             logSuccessedFile(f.getFilename(), antTransactions);
         } catch (Exception e) {
             meterRegistry.counter("forbruk_nets_app_error_handle_file", "file", f.getFilename(), "error", "handle_file").increment();
-            logger.error("Error producing messages for {}: {}", f.getFilename(), e.getMessage());
-            throw new Exception();
+            logger.error("Error producing messages for {}: {} \n {}", f.getFilename(), e.getMessage(), e.getStackTrace());
+            throw new Exception(e);
         }
     }
 
