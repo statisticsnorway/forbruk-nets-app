@@ -126,7 +126,7 @@ public class NetsController {
             .append("<td>").append(f.getId()).append("</td>")
             .append("<td>").append(f.getFilename()).append("</td>")
             .append("<td>").append(f.getTransactions()).append("</td>")
-            .append("<td>").append(new SimpleDateFormat("dd.MM.yyyy hh.mm.ss").format(f.getTimestamp())).append("</td>")
+            .append("<td>").append(new SimpleDateFormat("dd.MM.yyyy HH.mm.ss").format(f.getTimestamp())).append("</td>")
             .append("</tr></tbody>");
         });
         sb.append("</table></body></html>");
