@@ -64,16 +64,17 @@ public class NetsController {
             long numberOfHandledFiles = forbrukNetsFilesRepository.count();
 
             List<ForbrukNetsFiles> filesAndTransactions = forbrukNetsFilesRepository.findAll();
+            String filesAndTransactionsJson = createJsonFromResultset(filesAndTransactions);
 
             int numberOfStoredTransactions = filesAndTransactions.stream()
                     .mapToInt(x -> x.getTransactions().intValue())
                     .sum();
-            String filesAndTransactionsOutput = createOutputFromResultset(filesAndTransactions, numberOfHandledFiles, numberOfStoredTransactions);
 
             numberOfFilesDbCounted.set( (int) numberOfHandledFiles);
             numberOfTransactionsDbCounted.set(numberOfStoredTransactions);
 
-            return new ResponseEntity<>( filesAndTransactionsOutput, HttpStatus.OK);
+            return new ResponseEntity<>("a total of " + numberOfHandledFiles + " files and " +
+                    numberOfStoredTransactions + " transactions are handled and stored \n" + filesAndTransactionsJson , HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Something went wrong in getting database information {}", e.getMessage());
             e.printStackTrace();
@@ -104,9 +105,9 @@ public class NetsController {
             Optional<ForbrukNetsFiles> idRow = forbrukNetsFilesRepository.findById(id);
             logger.info("row with id {} : {}", id, idRow);
 
-//            forbrukNetsFilesRepository.deleteById(id);
-//
-//            logger.info("Deleted row with id {}", id);
+            forbrukNetsFilesRepository.deleteById(id);
+
+            logger.info("Deleted row with id {}", id);
 
             Gson gson = new GsonBuilder().setPrettyPrinting().setDateFormat("dd.MM.yyyy HH.mm.ss").create();
             return new ResponseEntity<>(gson.toJson(idRow), HttpStatus.OK);
@@ -115,6 +116,11 @@ public class NetsController {
             e.printStackTrace();
             return new ResponseEntity<>("Something went wrong listing nets-files ", HttpStatus.EXPECTATION_FAILED);
         }
+    }
+
+    private String createJsonFromResultset(List<ForbrukNetsFiles> filesAndTransactions) {
+        Gson gsonBuilder = new GsonBuilder().setPrettyPrinting().setDateFormat("dd.MM.yyyy hh.mm.ss").create();
+        return gsonBuilder.toJson(filesAndTransactions);
     }
 
     private String createOutputFromResultset(List<ForbrukNetsFiles> filesAndTransactions, long numberOfHandledFiles, int numberOfStoredTransactions) {

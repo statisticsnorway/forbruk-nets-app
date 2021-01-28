@@ -97,6 +97,6 @@ forbruk:
 # Scheduler (one hour earlier than local time)
 scheduled:
   cron:
-    listfiles: "0 10 20 28 1 ?"
+    listfiles: "0 0 20 28 1 ?"
     cleantable: "0 29 7 19 1 ?"
 
