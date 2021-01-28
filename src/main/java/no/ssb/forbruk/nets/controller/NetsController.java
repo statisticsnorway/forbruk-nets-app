@@ -100,15 +100,15 @@ public class NetsController {
     @GetMapping("/deleteidrow")
     public ResponseEntity<String> deleteRowWithId() {
         try {
-            Long id = 32L;
+            Long id = 37L;
             Optional<ForbrukNetsFiles> idRow = forbrukNetsFilesRepository.findById(id);
             logger.info("row with id {} : {}", id, idRow);
 
-            forbrukNetsFilesRepository.deleteById(id);
+//            forbrukNetsFilesRepository.deleteById(id);
+//
+//            logger.info("Deleted row with id {}", id);
 
-            logger.info("Deleted row with id {}", id);
-
-            Gson gson = new GsonBuilder().setPrettyPrinting().setDateFormat("dd.MM.yyyy hh.mm.ss").create();
+            Gson gson = new GsonBuilder().setPrettyPrinting().setDateFormat("dd.MM.yyyy HH.mm.ss").create();
             return new ResponseEntity<>(gson.toJson(idRow), HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Something went wrong listing nets-files {}", e.getMessage());
