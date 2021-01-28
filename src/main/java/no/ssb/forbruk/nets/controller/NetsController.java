@@ -14,8 +14,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
@@ -61,17 +64,16 @@ public class NetsController {
             long numberOfHandledFiles = forbrukNetsFilesRepository.count();
 
             List<ForbrukNetsFiles> filesAndTransactions = forbrukNetsFilesRepository.findAll();
-            String filesAndTransactionsJson = createJsonFromResultset(filesAndTransactions);
 
             int numberOfStoredTransactions = filesAndTransactions.stream()
                     .mapToInt(x -> x.getTransactions().intValue())
                     .sum();
+            String filesAndTransactionsOutput = createOutputFromResultset(filesAndTransactions, numberOfHandledFiles, numberOfStoredTransactions);
 
             numberOfFilesDbCounted.set( (int) numberOfHandledFiles);
             numberOfTransactionsDbCounted.set(numberOfStoredTransactions);
 
-            return new ResponseEntity<>("a total of " + numberOfHandledFiles + " files and " +
-                    numberOfStoredTransactions + " transactions are handled and stored \n" + filesAndTransactionsJson , HttpStatus.OK);
+            return new ResponseEntity<>( filesAndTransactionsOutput, HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Something went wrong in getting database information {}", e.getMessage());
             e.printStackTrace();
@@ -94,11 +96,41 @@ public class NetsController {
         }
     }
 
-    private String createJsonFromResultset(List<ForbrukNetsFiles> filesAndTransactions) {
-        Gson gsonBuilder = new GsonBuilder().setPrettyPrinting().setDateFormat("dd.MM.yyyy hh.mm.ss").create();
-        return gsonBuilder.toJson(filesAndTransactions);
 
+    @GetMapping("/deleteidrow")
+    public ResponseEntity<String> deleteRowWithId() {
+        try {
+            Long id = 32L;
+            Optional<ForbrukNetsFiles> idRow = forbrukNetsFilesRepository.findById(id);
+            logger.info("row with id {} : {}", id, idRow);
+
+            forbrukNetsFilesRepository.deleteById(id);
+
+            logger.info("Deleted row with id {}", id);
+
+            Gson gson = new GsonBuilder().setPrettyPrinting().setDateFormat("dd.MM.yyyy hh.mm.ss").create();
+            return new ResponseEntity<>(gson.toJson(idRow), HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Something went wrong listing nets-files {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong listing nets-files ", HttpStatus.EXPECTATION_FAILED);
+        }
     }
 
+    private String createOutputFromResultset(List<ForbrukNetsFiles> filesAndTransactions, long numberOfHandledFiles, int numberOfStoredTransactions) {
+        StringBuilder sb = new StringBuilder("<html><body><table>");
+        sb.append("<thead><tr><th colspan=\"4\">A total of ").append(numberOfHandledFiles).append(" files and ").append(numberOfStoredTransactions)
+        .append(" transactions is handled and stored.").append("</th></tr></thead>");
+        filesAndTransactions.forEach(f -> {
+            sb.append("<tbody><tr>")
+            .append("<td>").append(f.getId()).append("</td>")
+            .append("<td>").append(f.getFilename()).append("</td>")
+            .append("<td>").append(f.getTransactions()).append("</td>")
+            .append("<td>").append(new SimpleDateFormat("dd.MM.yyyy hh.mm.ss").format(f.getTimestamp())).append("</td>")
+            .append("</tr></tbody>");
+        });
+        sb.append("</table></body></html>");
+        return sb.toString();
+    }
 }
 
