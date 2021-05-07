@@ -90,13 +90,13 @@ forbruk:
     workdir: "./Outbound"
     privatekeyfile:
     filedir: "tmp/"
-    header: "TRANSAKSJONSDATO;TRANSTYPESTATUS;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT "
+    header: "TRANSAKSJONSDATO;TRANSTYPESTATUS;KORTTJENESTE;BRUKERSTED_ORGNUMMER;BRUKERSTED_NAVN;KORTINNEH_KONTONR;VAREKJOP_BELOP;BELOEP_TOTALT"
 
 
 
-# Scheduler (one hour earlier than local time)
+# Scheduler (one hour earlier than local time in winter and two hours in summer-time)
 scheduled:
   cron:
-    listfiles: "0 0 20 28 1 ?"
-    cleantable: "0 29 7 19 1 ?"
+    listfiles: "0 15 8 28 1 ?"
+    cleantable: "0 20 8 7 5 ?"
 
