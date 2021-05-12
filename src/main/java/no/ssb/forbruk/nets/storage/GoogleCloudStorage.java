@@ -192,10 +192,10 @@ public class GoogleCloudStorage {
                 for (String key : message.keys()) {
                     logger.info("key: {}", key);
                     logger.info("  message content for key {}: {}", key, new String(message.get(key)));
-                    logger.info("  message content for key {}: {}", key, encryption.tryDecryptContent(message.get(key)));
+                    logger.info("  decrypted content for key {}: {}", key, new String(encryption.tryDecryptContent(message.get(key))));
                     contentBuilder
                             .append("\n\t").append(key).append(" => ")
-                            .append(new String(message.get(key)));
+                            .append(new String(encryption.tryDecryptContent(message.get(key))));
                 }
                 logger.info("consumed message {}", contentBuilder.toString());
                 antConsumed++;
