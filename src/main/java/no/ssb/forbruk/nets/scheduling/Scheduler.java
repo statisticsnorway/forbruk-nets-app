@@ -6,12 +6,14 @@ import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import no.ssb.forbruk.nets.filehandle.NetsHandle;
+import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,6 +32,9 @@ public class Scheduler {
     private AtomicInteger numberOfTransactionsDbCounted = new AtomicInteger(0);
 
     private static boolean okToRun = true;
+
+    @NonNull
+    private final GoogleCloudStorage googleCloudStorage;
 
     @Timed( value = "forbruk_nets_app_scheduledtask", description = "Time spent running scheduled task")
     @Scheduled(cron = "${scheduled.cron.listfiles}")
@@ -57,6 +62,22 @@ public class Scheduler {
         } catch (Exception e) {
             logger.error("Something went wrong in deleting tablerows{}", e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+
+
+    @Scheduled(cron = "${scheduled.cron.consume}")
+    public ResponseEntity<String> consumeNetsRawdata() {
+        try {
+            googleCloudStorage.setupGoogleCloudStorage();
+            googleCloudStorage.consumeMessages("transactions-nets-2018-18");
+            logger.info("Called consume - " + LocalDateTime.now());
+            return new ResponseEntity<>("Consumed rawdata", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Something went wrong in consuming netsrawdata {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong in consuming netsrawdata ", HttpStatus.EXPECTATION_FAILED);
         }
     }
 

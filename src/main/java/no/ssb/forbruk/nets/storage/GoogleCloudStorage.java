@@ -13,6 +13,7 @@ import no.ssb.forbruk.nets.storage.utils.Manifest;
 import no.ssb.forbruk.nets.storage.utils.ULIDGenerator;
 import no.ssb.rawdata.api.RawdataClient;
 import no.ssb.rawdata.api.RawdataClientInitializer;
+import no.ssb.rawdata.api.RawdataConsumer;
 import no.ssb.rawdata.api.RawdataMessage;
 import no.ssb.rawdata.api.RawdataProducer;
 import no.ssb.service.provider.api.ProviderConfigurator;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -171,6 +173,38 @@ public class GoogleCloudStorage {
         numberOfStoredTransactions.set(positions.size());
 
         return positions.size();
+    }
+
+
+
+    public int consumeMessages(String consumeRa) {
+        int antConsumed = 0;
+        try (RawdataConsumer consumer = rawdataClient.consumer(rawdataTopic)) {
+            logger.info("consumer: {}", consumer.topic());
+            RawdataMessage message;
+            while ((message = consumer.receive(1, TimeUnit.SECONDS)) != null
+                    && antConsumed < 2
+            ) {
+                logger.info("message position: {}", message.position());
+                // print message
+                StringBuilder contentBuilder = new StringBuilder();
+                contentBuilder.append("\nposition: ").append(message.position());
+                for (String key : message.keys()) {
+                    logger.info("key: {}", key);
+                    logger.info("  message content for key {}: {}", key, new String(message.get(key)));
+                    contentBuilder
+                            .append("\n\t").append(key).append(" => ")
+                            .append(new String(message.get(key)));
+                }
+                logger.info("consumed message {}", contentBuilder.toString());
+                antConsumed++;
+            }
+        } catch (Exception e) {
+            logger.error("Error consuming messages: {}", e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+        return antConsumed;
     }
 
 }
