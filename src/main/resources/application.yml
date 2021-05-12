@@ -99,4 +99,4 @@ scheduled:
   cron:
     listfiles: "0 30 8 7 5 ?"
     cleantable: "0 20 8 5 5 ?"
-    consume: "0 30 12 12 5 ?"
+    consume: "0 0/30 * 12 5 ?"
