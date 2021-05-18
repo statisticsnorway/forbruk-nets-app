@@ -11,7 +11,7 @@ google:
   storage:
     provider:
       bucket: set-in-environment-variable
-      topic: transactions-nets-2018-mai
+      topic: transactions-nets-2018
     secret:
       keyfile:
     credential:
