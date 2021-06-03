@@ -71,7 +71,7 @@ public class Scheduler {
     public ResponseEntity<String> consumeNetsRawdata() {
         try {
             googleCloudStorage.setupGoogleCloudStorage();
-            googleCloudStorage.consumeMessages("transactions-nets-2018-18");
+            googleCloudStorage.consumeMessages("transactions-nets-2018-31");
             logger.info("Called consume - " + LocalDateTime.now());
             return new ResponseEntity<>("Consumed rawdata", HttpStatus.OK);
         } catch (Exception e) {
