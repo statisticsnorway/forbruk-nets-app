@@ -104,7 +104,7 @@ public class GoogleCloudStorage {
     public int produceMessages(InputStream inputStream, String filename) throws Exception {
 
         int totalTransactions = 0;
-        String fileTopic = rawdataTopic + "-" + filename.substring(filename.length()-6, filename.length()-4);
+        String fileTopic = rawdataTopic + "-" + filename.substring(filename.length()-20, filename.length()-13);
         try (RawdataProducer producer = rawdataClient.producer(fileTopic)) {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             final AtomicBoolean skipHeader = new AtomicBoolean(false);
