@@ -110,6 +110,7 @@ public class GoogleCloudStorage {
             final AtomicBoolean skipHeader = new AtomicBoolean(false);
             final List<String> positions = new ArrayList<>();
             String line;
+            String messageLine = "";
             // loop through all lines in inputstream, create storagemessage for each, buffer the message
             // and publish for each <maxbuffer> message
             while ((line = reader.readLine()) != null) {
@@ -117,18 +118,29 @@ public class GoogleCloudStorage {
                     //create unique position for fileline
                     String position = ULIDGenerator.toUUID(ULIDGenerator.generate()).toString();
 
-                    //create message and buffer it
-                    producer.buffer(
-                            createMessageWithManifestAndEntry(filename, producer, line, position
-                            , positions.size() < 3));
-                    positions.add(position);
+                    messageLine = messageLine + line;
+                    if (messageLine.split(";").length == headerColumns.length) {
+                        //create message and buffer it
+                        producer.buffer(
+                                createMessageWithManifestAndEntry(filename, producer, messageLine, position
+                                , positions.size() < 3));
+                        positions.add(position);
 
-                    // publish every maxBufferLines lines
-                    if (positions.size() >= maxBufferLines) {
-                        totalTransactions += publishPositions(producer, positions);
-                        positions.clear();
-                        logger.info("positions: {}", positions);
+                        // publish every maxBufferLines lines
+                        if (positions.size() >= maxBufferLines) {
+                            totalTransactions += publishPositions(producer, positions);
+                            positions.clear();
+                            logger.info("positions: {}", positions);
+                        }
+                        messageLine = "";
+                    } else {
+//                        logger.info("ikke lik: {}", messageLine);
+                        if (messageLine.split(";").length > headerColumns.length) {
+                            logger.error("har blitt for lang ({}): {}", messageLine.split(";").length, messageLine);
+                            messageLine = "";
+                        }
                     }
+
                 }
 
             }
