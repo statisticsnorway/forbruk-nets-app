@@ -37,7 +37,7 @@ public class Scheduler {
     private final GoogleCloudStorage googleCloudStorage;
 
     @Timed( value = "forbruk_nets_app_scheduledtask", description = "Time spent running scheduled task")
-    @Scheduled(cron = "${scheduled.cron.listfiles}")
+    @Scheduled(cron = "${scheduled.cron.handlefiles}")
     public void handleNetsTransactions() {
         if (okToRun) {
             try {
@@ -69,16 +69,32 @@ public class Scheduler {
 
     @Scheduled(cron = "${scheduled.cron.consume}")
     public ResponseEntity<String> consumeNetsRawdata() {
+        HttpStatus status = HttpStatus.OK;
         try {
             googleCloudStorage.setupGoogleCloudStorage();
             googleCloudStorage.consumeMessages("transactions-nets-2018-31");
             logger.info("Called consume - " + LocalDateTime.now());
-            return new ResponseEntity<>("Consumed rawdata", HttpStatus.OK);
+            netsHandle.endHandleNetsFiles();
         } catch (Exception e) {
             logger.error("Something went wrong in consuming netsrawdata {}", e.getMessage());
             e.printStackTrace();
             return new ResponseEntity<>("Something went wrong in consuming netsrawdata ", HttpStatus.EXPECTATION_FAILED);
         }
+        return new ResponseEntity<>("Listed nets-filenames", HttpStatus.OK);
     }
 
+
+    @Scheduled(cron = "${scheduled.cron.listfilenames}")
+    public ResponseEntity<String> listFileNames() {
+        try {
+            netsHandle.initialize(numberOfFilesDbCounted, numberOfTransactionsDbCounted);
+            logger.info("Called netsfiles - " + LocalDateTime.now());
+            netsHandle.listAllNetsFiles();
+            return new ResponseEntity<>("Consumed rawdata", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Something went wrong in getting filenames {}", e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong in getting filenames ", HttpStatus.EXPECTATION_FAILED);
+        }
+    }
 }

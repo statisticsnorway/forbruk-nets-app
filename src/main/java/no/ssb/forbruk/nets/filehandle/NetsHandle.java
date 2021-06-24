@@ -130,7 +130,9 @@ public class NetsHandle {
                 .collect(Collectors.toList());
 
         logger.info("{} files at Nets:", netsFiles.size());
-        netsFiles.forEach( f -> logger.info("File : {} ({})", f.getFilename(), f.getAttrs().getSize()));
+        netsFiles.forEach( f ->
+                logger.info("File : {} ({})", f.getFilename(), f.getAttrs().getSize()));
+        sftpFileTransfer.disconnectJsch();
         return new GsonBuilder().setPrettyPrinting().create().toJson(netsFiles);
     }
 
