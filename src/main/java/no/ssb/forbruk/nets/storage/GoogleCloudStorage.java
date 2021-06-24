@@ -104,7 +104,7 @@ public class GoogleCloudStorage {
     public int produceMessages(InputStream inputStream, String filename) throws Exception {
 
         int totalTransactions = 0;
-        String fileTopic = rawdataTopic + "-" + filename.substring(filename.length()-20, filename.length()-13);
+        String fileTopic = fileTopic(rawdataTopic, filename);
         try (RawdataProducer producer = rawdataClient.producer(fileTopic)) {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
             final AtomicBoolean skipHeader = new AtomicBoolean(false);
@@ -219,4 +219,11 @@ public class GoogleCloudStorage {
         return antConsumed;
     }
 
+    private String fileTopic(String prefix, String filename) {
+        String trimmed = filename
+                .replace("pSSBNO_SSB_Data_delivery_","")
+                .replace(".csv","");
+        return prefix + "_" + trimmed.substring(0, trimmed.length()-13);
+
+    }
 }

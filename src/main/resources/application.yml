@@ -97,7 +97,7 @@ forbruk:
 # Scheduler (one hour earlier than local time in winter and two hours in summer-time)
 scheduled:
   cron:
-    handlefiles: "0 10 13 9 6 ?"
+    handlefiles: "0 30 7 24 6 ?"
     cleantable: "0 25 6 18 5 ?"
     consume: "0 0/20 * 3 6 ?"
     listfilenames: "0 50 6 24 6 ?"
