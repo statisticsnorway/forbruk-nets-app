@@ -100,4 +100,4 @@ scheduled:
     handlefiles: "0 10 13 9 6 ?"
     cleantable: "0 25 6 18 5 ?"
     consume: "0 0/20 * 3 6 ?"
-    listfilenames: "0 30 6 14 6 ?"
+    listfilenames: "0 50 6 24 6 ?"
