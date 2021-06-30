@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import no.ssb.forbruk.nets.db.model.ForbrukNetsFiles;
 import no.ssb.forbruk.nets.filehandle.NetsHandle;
 import no.ssb.forbruk.nets.storage.GoogleCloudStorage;
 import org.slf4j.Logger;
@@ -16,7 +17,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -65,14 +68,23 @@ public class Scheduler {
         }
     }
 
-
+    @Scheduled(cron = "${scheduled.cron.listhandledfiles}")
+    public void listHandledFiles() {
+        try {
+            netsHandle.listAllFromDBTable();
+            logger.info("Listed all from db-table forbruk_nets_files - " + LocalDateTime.now());
+        } catch (Exception e) {
+            logger.error("Something went wrong in deleting tablerows{}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     @Scheduled(cron = "${scheduled.cron.consume}")
     public ResponseEntity<String> consumeNetsRawdata() {
         HttpStatus status = HttpStatus.OK;
         try {
             googleCloudStorage.setupGoogleCloudStorage();
-            googleCloudStorage.consumeMessages("transactions-nets-2018-31");
+            googleCloudStorage.consumeMessages("transactions-nets-2018_April");
             logger.info("Called consume - " + LocalDateTime.now());
             netsHandle.endHandleNetsFiles();
         } catch (Exception e) {
@@ -97,4 +109,6 @@ public class Scheduler {
             return new ResponseEntity<>("Something went wrong in getting filenames ", HttpStatus.EXPECTATION_FAILED);
         }
     }
+
+
 }

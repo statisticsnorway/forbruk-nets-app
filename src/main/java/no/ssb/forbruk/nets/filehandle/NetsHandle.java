@@ -142,4 +142,9 @@ public class NetsHandle {
         logger.info("Deleted all from db-table forbruk_nets_files - " + LocalDateTime.now());
     }
 
+    public void listAllFromDBTable() throws Exception {
+        forbrukNetsFilesRepository.findAll().forEach(f ->
+                logger.info("{}: {} rader lastet {}", f.getFilename(), f.getTransactions(), f.getTimestamp()));
+        logger.info("Listed all from db-table forbruk_nets_files - " + LocalDateTime.now());
+    }
 }
